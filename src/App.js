@@ -156,30 +156,30 @@ const canPlayTile = (tile, board) => {
   const leftEndTile = board[0];
   const rightEndTile = board[board.length - 1];
   
-  // Get the actual values at the ends, considering orientation and flipping
-  const boardLeftValue = leftEndTile.left;
-  const boardRightValue = rightEndTile.right;
+  // Get the actual values at the ends
+  const boardLeftValue = leftEndTile ? leftEndTile.left : null;
+  const boardRightValue = rightEndTile ? rightEndTile.right : null;
 
-  // Check all possible ways to play the tile
-  const canPlayLeftWithLeft = tile.left === boardLeftValue;
-  const canPlayLeftWithRight = tile.right === boardLeftValue;
-  const canPlayRightWithLeft = tile.left === boardRightValue;
-  const canPlayRightWithRight = tile.right === boardRightValue;
-
-  if (canPlayLeftWithLeft || canPlayLeftWithRight) {
-    return {
-      canPlay: true,
-      position: "left",
-      needsFlip: canPlayLeftWithRight,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
-  }
+  // For RTL layout, we need to check connections in reverse
+  const canPlayRightWithLeft = tile.left === boardLeftValue;
+  const canPlayRightWithRight = tile.right === boardLeftValue;
+  const canPlayLeftWithLeft = tile.left === boardRightValue;
+  const canPlayLeftWithRight = tile.right === boardRightValue;
 
   if (canPlayRightWithLeft || canPlayRightWithRight) {
     return {
       canPlay: true,
-      position: "right",
-      needsFlip: canPlayRightWithLeft,
+      position: "right", // In RTL, this will be visually on the right
+      needsFlip: canPlayRightWithRight,
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
+    };
+  }
+
+  if (canPlayLeftWithLeft || canPlayLeftWithRight) {
+    return {
+      canPlay: true,
+      position: "left", // In RTL, this will be visually on the left
+      needsFlip: canPlayLeftWithRight,
       orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
