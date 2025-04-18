@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/dommino/static/css/main.e1f0c271.css",
-    "main.js": "/dommino/static/js/main.5e6b8120.js",
+    "main.css": "/dommino/static/css/main.121b9a06.css",
+    "main.js": "/dommino/static/js/main.52e2f4e5.js",
     "static/js/453.dc5563ba.chunk.js": "/dommino/static/js/453.dc5563ba.chunk.js",
     "index.html": "/dommino/index.html",
-    "main.e1f0c271.css.map": "/dommino/static/css/main.e1f0c271.css.map",
-    "main.5e6b8120.js.map": "/dommino/static/js/main.5e6b8120.js.map",
+    "main.121b9a06.css.map": "/dommino/static/css/main.121b9a06.css.map",
+    "main.52e2f4e5.js.map": "/dommino/static/js/main.52e2f4e5.js.map",
     "453.dc5563ba.chunk.js.map": "/dommino/static/js/453.dc5563ba.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.e1f0c271.css",
-    "static/js/main.5e6b8120.js"
+    "static/css/main.121b9a06.css",
+    "static/js/main.52e2f4e5.js"
   ]
 }
