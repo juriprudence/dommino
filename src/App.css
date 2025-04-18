@@ -626,8 +626,14 @@ h1 {
   }
   
   .board-area {
+    min-height: 140px;
+    padding: 20px 10px;
+  }
+  
+  .board-tiles {
+    gap: 16px;
+    padding: 16px 0;
     min-height: 100px;
-    padding: 10px;
   }
   
   .players-info {

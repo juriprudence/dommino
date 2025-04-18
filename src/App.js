@@ -676,31 +676,22 @@ const GameRoom = () => {
               <div className="player-hand">
                 <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
-                  {game.players[playerNumber].tiles.map((tile, index) => {
-                    // Determine if this tile would be flipped if played
-                    let flipped = false;
-                    if (selectedTile && selectedTile.index === index) {
-                      const board = game.gameState.board || [];
-                      const { canPlay, needsFlip } = canPlayTile(tile, board);
-                      flipped = !!needsFlip;
-                    }
-                    return (
-                      <div 
-                        key={`hand-${index}`} 
-                        className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
-                        onClick={() => handleTileSelect(tile, index)}
-                      >
-                        <div className={`domino${flipped ? ' flipped' : ''}`}>
-                          <div className="domino-half">
-                            <DominoDots value={tile.left} />
-                          </div>
-                          <div className="domino-half">
-                            <DominoDots value={tile.right} />
-                          </div>
+                  {game.players[playerNumber].tiles.map((tile, index) => (
+                    <div 
+                      key={`hand-${index}`} 
+                      className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
+                      onClick={() => handleTileSelect(tile, index)}
+                    >
+                      <div className="domino">
+                        <div className="domino-half">
+                          <DominoDots value={tile.left} />
+                        </div>
+                        <div className="domino-half">
+                          <DominoDots value={tile.right} />
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
               
