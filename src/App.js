@@ -437,12 +437,14 @@ const GameRoom = () => {
 
     // Create a new board with the played tile
     let updatedBoard = [...board];
+    // Determine orientation: double = vertical, else horizontal
+    let tileOrientation = (selectedTile.left === selectedTile.right) ? "vertical" : "horizontal";
     const playedTile = {
       left: selectedTile.left,
       right: selectedTile.right,
       id: selectedTile.id,
       flipped: flipped || false,
-      orientation: orientation || "horizontal"
+      orientation: tileOrientation
     };
 
     if (position === "first" || position === "left") {
