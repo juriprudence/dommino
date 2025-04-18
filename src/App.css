@@ -627,12 +627,12 @@ h1 {
   
   .board-area {
     min-height: 140px;
-    padding: 20px 10px;
+    padding: 20px 24px; /* Add more padding to left/right edge */
   }
   
   .board-tiles {
-    gap: 16px;
-    padding: 16px 0;
+    gap: 8px; /* Restore default gap between dominoes */
+    padding: 0;
     min-height: 100px;
   }
   
