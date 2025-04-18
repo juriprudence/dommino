@@ -439,33 +439,28 @@ const GameRoom = () => {
     let updatedBoard = [...board];
     // Determine orientation: double = vertical, else horizontal
     let tileOrientation = (selectedTile.left === selectedTile.right) ? "vertical" : "horizontal";
-    let tileFlipped = false;
     let left = selectedTile.left;
     let right = selectedTile.right;
     if (position === "left") {
       const leftValue = board.length > 0 ? (board[0].orientation === "vertical" ? board[0].left : (board[0].flipped ? board[0].right : board[0].left)) : null;
-      tileFlipped = selectedTile.right === leftValue;
-      if (tileFlipped && selectedTile.left !== selectedTile.right) {
-        // Swap left/right for display if not a double
-        left = selectedTile.right;
-        right = selectedTile.left;
+      // Ensure right value matches leftValue
+      if (right !== leftValue) {
+        // Swap
+        [left, right] = [right, left];
       }
     } else if (position === "right") {
       const rightValue = board.length > 0 ? (board[board.length - 1].orientation === "vertical" ? board[board.length - 1].right : (board[board.length - 1].flipped ? board[board.length - 1].left : board[board.length - 1].right)) : null;
-      tileFlipped = selectedTile.left === rightValue;
-      if (tileFlipped && selectedTile.left !== selectedTile.right) {
-        // Swap left/right for display if not a double
-        left = selectedTile.right;
-        right = selectedTile.left;
+      // Ensure left value matches rightValue
+      if (left !== rightValue) {
+        // Swap
+        [left, right] = [right, left];
       }
     }
-    // Don't flip doubles
-    if (selectedTile.left === selectedTile.right) tileFlipped = false;
     const playedTile = {
       left,
       right,
       id: selectedTile.id,
-      flipped: tileFlipped,
+      flipped: false,
       orientation: tileOrientation
     };
 
