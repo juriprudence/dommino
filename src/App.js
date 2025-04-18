@@ -439,11 +439,23 @@ const GameRoom = () => {
     let updatedBoard = [...board];
     // Determine orientation: double = vertical, else horizontal
     let tileOrientation = (selectedTile.left === selectedTile.right) ? "vertical" : "horizontal";
+    let tileFlipped = false;
+    if (position === "left") {
+      // If placing on the left, match the left value of the board
+      const leftValue = board.length > 0 ? (board[0].orientation === "vertical" ? board[0].left : (board[0].flipped ? board[0].right : board[0].left)) : null;
+      tileFlipped = selectedTile.right === leftValue;
+    } else if (position === "right") {
+      // If placing on the right, match the right value of the board
+      const rightValue = board.length > 0 ? (board[board.length - 1].orientation === "vertical" ? board[board.length - 1].right : (board[board.length - 1].flipped ? board[board.length - 1].left : board[board.length - 1].right)) : null;
+      tileFlipped = selectedTile.left === rightValue;
+    }
+    // Don't flip doubles
+    if (selectedTile.left === selectedTile.right) tileFlipped = false;
     const playedTile = {
       left: selectedTile.left,
       right: selectedTile.right,
       id: selectedTile.id,
-      flipped: flipped || false,
+      flipped: tileFlipped,
       orientation: tileOrientation
     };
 
