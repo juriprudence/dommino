@@ -30,6 +30,34 @@ onValue(connectionRef, (snap) => {
   }
 });
 
+// Arabic translations
+const arabicText = {
+  gameTitle: "لعبة الدومينو",
+  enterName: "أدخل اسمك",
+  startGame: "ابدأ لعبة جديدة",
+  waiting: "...في انتظار انضمام اللاعب الثاني",
+  shareLink: "شارك هذا الرابط مع صديقك",
+  copyLink: "انسخ الرابط",
+  roomId: "رقم الغرفة",
+  noTiles: "لا توجد قطع على اللوحة بعد",
+  yourTiles: "قطع الدومينو الخاصة بك",
+  playTile: "العب القطعة المختارة",
+  drawTile: "اسحب قطعة",
+  gameOver: "انتهت اللعبة!",
+  wins: "فاز!",
+  newGame: "لعبة جديدة",
+  joinGame: "انضم إلى اللعبة",
+  notYourTurn: "!ليس دورك",
+  cantPlay: "!لا يمكن لعب هذه القطعة هنا",
+  noTilesLeft: "!لا توجد قطع متبقية في الكومة",
+  drew: "سحب قطعة",
+  canPlay: "سحب قطعة ويمكنه اللعب",
+  passes: "سحب قطعة ويمرر",
+  hasNoPlayable: "ليس لديه قطع قابلة للعب ويمرر",
+  you: "(أنت)",
+  tiles: "القطع",
+};
+
 // Utility Functions
 const generateDominoTiles = () => {
   const tiles = [];
@@ -48,6 +76,71 @@ const shuffleTiles = (tiles) => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+};
+
+// Domino Dot Display Component
+const DominoDots = ({ value }) => {
+  const renderDots = () => {
+    switch (value) {
+      case 0:
+        return <div className="dots-container empty"></div>;
+      case 1:
+        return (
+          <div className="dots-container one">
+            <span className="dot center"></span>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="dots-container two">
+            <span className="dot top-right"></span>
+            <span className="dot bottom-left"></span>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="dots-container three">
+            <span className="dot top-right"></span>
+            <span className="dot center"></span>
+            <span className="dot bottom-left"></span>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="dots-container four">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      case 5:
+        return (
+          <div className="dots-container five">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot center"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      case 6:
+        return (
+          <div className="dots-container six">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot middle-left"></span>
+            <span className="dot middle-right"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return renderDots();
 };
 
 // Check if a tile can be played on the board
@@ -210,18 +303,29 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <h1>Domino Game</h1>
+      <div className="domino-logo">
+        <div className="logo-domino">
+          <div className="domino-half">
+            <DominoDots value={6} />
+          </div>
+          <div className="domino-half">
+            <DominoDots value={6} />
+          </div>
+        </div>
+      </div>
+      <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="start-game-form">
         <input
           type="text"
-          placeholder="Enter your name"
+          placeholder={arabicText.enterName}
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
-          className="player-name-input"
+          className="player-name-input arabic-input"
+          dir="rtl"
         />
         {error && <p className="error-message">{error}</p>}
-        <button onClick={handleStartGame} className="start-game-button">
-          Start New Game
+        <button onClick={handleStartGame} className="start-game-button arabic-text">
+          {arabicText.startGame}
         </button>
       </div>
     </div>
@@ -313,7 +417,7 @@ const GameRoom = () => {
     // Only allow selecting tile if it's your turn
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage("It's not your turn!");
+      setGameMessage(arabicText.notYourTurn);
       return;
     }
 
@@ -325,7 +429,7 @@ const GameRoom = () => {
 
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage("It's not your turn!");
+      setGameMessage(arabicText.notYourTurn);
       return;
     }
 
@@ -333,7 +437,7 @@ const GameRoom = () => {
     const { canPlay, position, flipped, orientation } = canPlayTile(selectedTile, board);
 
     if (!canPlay) {
-      setGameMessage("This tile can't be played here");
+      setGameMessage(arabicText.cantPlay);
       return;
     }
 
@@ -362,7 +466,7 @@ const GameRoom = () => {
     
     if (updatedPlayerTiles.length === 0) {
       winner = playerNumber;
-      message = `${game.players[playerNumber].name} wins!`;
+      message = `${game.players[playerNumber].name} ${arabicText.wins}`;
     }
 
     // Update game state in Firebase
@@ -390,12 +494,12 @@ const GameRoom = () => {
   const handleDrawTile = async () => {
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage("It's not your turn!");
+      setGameMessage(arabicText.notYourTurn);
       return;
     }
 
     if (game.gameState.boneyard.length === 0) {
-      setGameMessage("No tiles left in the boneyard!");
+      setGameMessage(arabicText.noTilesLeft);
       
       // If boneyard is empty and player can't play, skip turn
       const canPlay = !isPlayerBlocked(game.players[playerNumber].tiles, game.gameState.board);
@@ -403,7 +507,7 @@ const GameRoom = () => {
         const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
         await update(ref(database, `games/${roomId}/gameState`), {
           currentPlayerIndex: nextPlayerIndex,
-          message: `${game.players[playerNumber].name} has no playable tiles and passes`
+          message: `${game.players[playerNumber].name} ${arabicText.hasNoPlayable}`
         });
       }
       return;
@@ -420,8 +524,8 @@ const GameRoom = () => {
                            (game.gameState.currentPlayerIndex === 0 ? 1 : 0);
 
     const message = canPlay ? 
-      `${game.players[playerNumber].name} drew a tile and can play it` :
-      `${game.players[playerNumber].name} drew a tile and passes`;
+      `${game.players[playerNumber].name} ${arabicText.canPlay}` :
+      `${game.players[playerNumber].name} ${arabicText.passes}`;
 
     try {
       await update(ref(database, `games/${roomId}`), {
@@ -443,15 +547,15 @@ const GameRoom = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading game...</div>;
+    return <div className="loading arabic-text">...جاري تحميل اللعبة</div>;
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className="error arabic-text">{error}</div>;
   }
 
   if (!game) {
-    return <div className="error">Game not found</div>;
+    return <div className="error arabic-text">اللعبة غير موجودة</div>;
   }
 
   // Check if game is in waiting state
@@ -459,36 +563,36 @@ const GameRoom = () => {
   const isFinished = game.gameState.status === 'finished';
 
   return (
-    <div className="game-room">
-      <h1>Domino Game</h1>
+    <div className="game-room" dir="rtl">
+      <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="game-info">
-        <p>Room ID: {roomId}</p>
-        <button onClick={copyGameLink} className="copy-link-button">Copy Game Link</button>
+        <p className="arabic-text">{arabicText.roomId}: {roomId}</p>
+        <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
       </div>
 
       {gameMessage && (
-        <div className="game-message">
+        <div className="game-message arabic-text">
           {gameMessage}
         </div>
       )}
 
       {isWaiting ? (
         <div className="waiting-screen">
-          <h2>Waiting for Player 2 to join...</h2>
-          <p>Share this link with your friend:</p>
+          <h2 className="arabic-text">{arabicText.waiting}</h2>
+          <p className="arabic-text">{arabicText.shareLink}</p>
           <p className="game-link">{window.location.origin}/room/{roomId}</p>
-          <button onClick={copyGameLink} className="copy-link-button">Copy Link</button>
+          <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
         </div>
       ) : (
         <div className="game-board">
           <div className="players-info">
             <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}>
-              <h3>{game.players.player1.name} {playerNumber === 'player1' ? '(You)' : ''}</h3>
-              <p>Tiles: {game.players.player1.tiles.length}</p>
+              <h3 className="arabic-text">{game.players.player1.name} {playerNumber === 'player1' ? arabicText.you : ''}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players.player1.tiles.length}</p>
             </div>
             <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}>
-              <h3>{game.players.player2.name} {playerNumber === 'player2' ? '(You)' : ''}</h3>
-              <p>Tiles: {game.players.player2.tiles.length}</p>
+              <h3 className="arabic-text">{game.players.player2.name} {playerNumber === 'player2' ? arabicText.you : ''}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players.player2.tiles.length}</p>
             </div>
           </div>
 
@@ -498,21 +602,25 @@ const GameRoom = () => {
                 {game.gameState.board.map((tile, index) => (
                   <div key={`board-${index}`} className="board-tile">
                     <div className={`domino ${tile.orientation} ${tile.flipped ? 'flipped' : ''}`}>
-                      <div className="domino-half">{tile.left}</div>
-                      <div className="domino-half">{tile.right}</div>
+                      <div className="domino-half">
+                        <DominoDots value={tile.left} />
+                      </div>
+                      <div className="domino-half">
+                        <DominoDots value={tile.right} />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p>No tiles on the board yet</p>
+              <p className="arabic-text">{arabicText.noTiles}</p>
             )}
           </div>
 
           {!isFinished && playerNumber && game.players[playerNumber] && (
             <div className="player-controls">
               <div className="player-hand">
-                <h3>Your Tiles</h3>
+                <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
                   {game.players[playerNumber].tiles.map((tile, index) => (
                     <div 
@@ -521,8 +629,12 @@ const GameRoom = () => {
                       onClick={() => handleTileSelect(tile, index)}
                     >
                       <div className="domino">
-                        <div className="domino-half">{tile.left}</div>
-                        <div className="domino-half">{tile.right}</div>
+                        <div className="domino-half">
+                          <DominoDots value={tile.left} />
+                        </div>
+                        <div className="domino-half">
+                          <DominoDots value={tile.right} />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -533,16 +645,16 @@ const GameRoom = () => {
                 <button 
                   onClick={handlePlayTile} 
                   disabled={!selectedTile || !isMyTurn()}
-                  className={`play-button ${!selectedTile || !isMyTurn() ? 'disabled' : ''}`}
+                  className={`play-button arabic-text ${!selectedTile || !isMyTurn() ? 'disabled' : ''}`}
                 >
-                  Play Selected Tile
+                  {arabicText.playTile}
                 </button>
                 <button 
                   onClick={handleDrawTile}
                   disabled={!isMyTurn() || game.gameState.boneyard.length === 0}
-                  className={`draw-button ${!isMyTurn() || game.gameState.boneyard.length === 0 ? 'disabled' : ''}`}
+                  className={`draw-button arabic-text ${!isMyTurn() || game.gameState.boneyard.length === 0 ? 'disabled' : ''}`}
                 >
-                  Draw Tile ({game.gameState.boneyard.length})
+                  {arabicText.drawTile} ({game.gameState.boneyard.length})
                 </button>
               </div>
             </div>
@@ -550,10 +662,10 @@ const GameRoom = () => {
 
           {isFinished && (
             <div className="game-over">
-              <h2>Game Over!</h2>
-              <p>{game.players[game.gameState.winner].name} wins!</p>
-              <button onClick={() => navigate('/')} className="new-game-button">
-                Start New Game
+              <h2 className="arabic-text">{arabicText.gameOver}</h2>
+              <p className="arabic-text">{game.players[game.gameState.winner].name} {arabicText.wins}</p>
+              <button onClick={() => navigate('/')} className="new-game-button arabic-text">
+                {arabicText.newGame}
               </button>
             </div>
           )}
@@ -562,15 +674,16 @@ const GameRoom = () => {
 
       {joinDialogOpen && (
         <div className="join-dialog">
-          <h2>Join Game</h2>
+          <h2 className="arabic-text">{arabicText.joinGame}</h2>
           <input
             type="text"
-            placeholder="Enter your name"
+            placeholder={arabicText.enterName}
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
-            className="player-name-input"
+            className="player-name-input arabic-input"
+            dir="rtl"
           />
-          <button onClick={joinGame} className="join-button">Join Game</button>
+          <button onClick={joinGame} className="join-button arabic-text">{arabicText.joinGame}</button>
         </div>
       )}
     </div>
