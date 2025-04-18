@@ -148,40 +148,39 @@ const DominoDots = ({ value }) => {
 // Check if a tile can be played on the board
 const canPlayTile = (tile, board) => {
   // If board is empty, any tile can be played
-  if (!board || board.length === 0) { // Fixed: Add check for null board
+  if (!board || board.length === 0) {
     return { canPlay: true, position: "first", orientation: "horizontal" };
   }
 
-  // Check if tile can be played at the left end of the board
+  // Get the values at the ends of the board
   const leftEndTile = board[0];
-  const leftValue = leftEndTile.orientation === "horizontal" ? leftEndTile.left : 
-                    leftEndTile.flipped ? leftEndTile.right : leftEndTile.left;
-
-  // Check if tile can be played at the right end of the board
   const rightEndTile = board[board.length - 1];
-  const rightValue = rightEndTile.orientation === "horizontal" ? rightEndTile.right :
-                     rightEndTile.flipped ? rightEndTile.left : rightEndTile.right;
+  
+  // Get the actual values at the ends, considering orientation and flipping
+  const boardLeftValue = leftEndTile.left;
+  const boardRightValue = rightEndTile.right;
 
-  const canPlayLeft = tile.left === leftValue || tile.right === leftValue;
-  const canPlayRight = tile.left === rightValue || tile.right === rightValue;
+  // Check all possible ways to play the tile
+  const canPlayLeftWithLeft = tile.left === boardLeftValue;
+  const canPlayLeftWithRight = tile.right === boardLeftValue;
+  const canPlayRightWithLeft = tile.left === boardRightValue;
+  const canPlayRightWithRight = tile.right === boardRightValue;
 
-  if (canPlayLeft) {
-    // Determine orientation for left placement
-    return { 
-      canPlay: true, 
+  if (canPlayLeftWithLeft || canPlayLeftWithRight) {
+    return {
+      canPlay: true,
       position: "left",
-      flipped: tile.right === leftValue,
-      orientation: "horizontal"
+      needsFlip: canPlayLeftWithRight,
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
 
-  if (canPlayRight) {
-    // Determine orientation for right placement
-    return { 
-      canPlay: true, 
+  if (canPlayRightWithLeft || canPlayRightWithRight) {
+    return {
+      canPlay: true,
       position: "right",
-      flipped: tile.left === rightValue,
-      orientation: "horizontal"
+      needsFlip: canPlayRightWithLeft,
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
 
@@ -415,7 +414,7 @@ const GameRoom = () => {
   };
 
   const handlePlayTile = async () => {
-    if (!selectedTile || !game) return; // Fixed: Add check for null game
+    if (!selectedTile || !game) return;
 
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
@@ -424,7 +423,7 @@ const GameRoom = () => {
     }
 
     const board = game.gameState.board || [];
-    const { canPlay, position, flipped, orientation } = canPlayTile(selectedTile, board);
+    const { canPlay, position, needsFlip } = canPlayTile(selectedTile, board);
 
     if (!canPlay) {
       setGameMessage(arabicText.cantPlay);
@@ -435,42 +434,36 @@ const GameRoom = () => {
     const updatedPlayerTiles = [...game.players[playerNumber].tiles];
     updatedPlayerTiles.splice(selectedTile.index, 1);
 
-    // Create a new board with the played tile
-    let updatedBoard = [...board];
-    // Determine orientation: double = vertical, else horizontal
-    let tileOrientation = (selectedTile.left === selectedTile.right) ? "vertical" : "horizontal";
+    // Create the tile to be played with correct orientation
+    const isDouble = selectedTile.left === selectedTile.right;
+    const tileOrientation = isDouble ? "vertical" : "horizontal";
+    
+    // Determine the correct left and right values based on position
     let left = selectedTile.left;
     let right = selectedTile.right;
-    if (position === "left") {
-      const leftValue = board.length > 0 ? (board[0].orientation === "vertical" ? board[0].left : (board[0].flipped ? board[0].right : board[0].left)) : null;
-      // Ensure right value matches leftValue
-      if (right !== leftValue) {
-        // Swap
-        [left, right] = [right, left];
-      }
-    } else if (position === "right") {
-      const rightValue = board.length > 0 ? (board[board.length - 1].orientation === "vertical" ? board[board.length - 1].right : (board[board.length - 1].flipped ? board[board.length - 1].left : board[board.length - 1].right)) : null;
-      // Ensure left value matches rightValue
-      if (left !== rightValue) {
-        // Swap
-        [left, right] = [right, left];
-      }
+    
+    if (needsFlip && !isDouble) {
+      // Swap values if needed to match the connection point
+      [left, right] = [right, left];
     }
+
     const playedTile = {
       left,
       right,
       id: selectedTile.id,
-      flipped: false,
-      orientation: tileOrientation
+      orientation: tileOrientation,
+      flipped: false
     };
 
+    // Update the board
+    let updatedBoard = [...board];
     if (position === "first" || position === "left") {
       updatedBoard.unshift(playedTile);
     } else {
       updatedBoard.push(playedTile);
     }
 
-    // Check if a player has won
+    // Check for winner and update game state
     const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
     let winner = null;
     let message = "";
@@ -480,7 +473,6 @@ const GameRoom = () => {
       message = `${game.players[playerNumber].name} ${arabicText.wins}`;
     }
 
-    // Update game state in Firebase
     try {
       const updates = {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
