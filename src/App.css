@@ -627,13 +627,17 @@ h1 {
   
   .board-area {
     min-height: 140px;
-    padding: 20px 24px; /* Add more padding to left/right edge */
+    padding: 24px 24px; /* Add more padding to left/right edge */
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-width: 600px; /* Ensure more horizontal scroll room */
   }
   
   .board-tiles {
     gap: 0;
     padding: 0;
     min-height: 100px;
+    min-width: 600px; /* Ensure more horizontal scroll room for dominoes */
   }
   
   .players-info {
