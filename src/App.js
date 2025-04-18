@@ -149,37 +149,53 @@ const DominoDots = ({ value }) => {
 const canPlayTile = (tile, board) => {
   // If board is empty, any tile can be played
   if (!board || board.length === 0) {
-    return { canPlay: true, position: "first", orientation: "horizontal" };
+    return { canPlay: true, position: "first", needsFlip: false, orientation: "horizontal" };
   }
 
   // Get the values at the ends of the board
   const leftEndTile = board[0];
   const rightEndTile = board[board.length - 1];
-  
-  // Get the actual values at the ends
-  const boardLeftValue = leftEndTile ? leftEndTile.left : null;
-  const boardRightValue = rightEndTile ? rightEndTile.right : null;
 
-  // Check if the tile can be played on either end
-  const canPlayLeftWithLeft = tile.left === boardLeftValue;
-  const canPlayLeftWithRight = tile.right === boardLeftValue;
-  const canPlayRightWithLeft = tile.left === boardRightValue;
-  const canPlayRightWithRight = tile.right === boardRightValue;
+  // The value to match on the left and right
+  const boardLeftValue = leftEndTile.left;
+  const boardRightValue = rightEndTile.right;
 
-  if (canPlayLeftWithLeft || canPlayLeftWithRight) {
+  // Check if the tile can be played on the left
+  if (tile.right === boardLeftValue) {
+    // No flip needed, right of tile matches left of board
     return {
       canPlay: true,
       position: "left",
-      needsFlip: canPlayLeftWithLeft, // We need to flip if we're connecting left-to-left
+      needsFlip: false,
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
+    };
+  }
+  if (tile.left === boardLeftValue) {
+    // Flip needed, left of tile matches left of board
+    return {
+      canPlay: true,
+      position: "left",
+      needsFlip: true,
       orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
 
-  if (canPlayRightWithLeft || canPlayRightWithRight) {
+  // Check if the tile can be played on the right
+  if (tile.left === boardRightValue) {
+    // No flip needed, left of tile matches right of board
     return {
       canPlay: true,
       position: "right",
-      needsFlip: canPlayRightWithRight, // We need to flip if we're connecting right-to-right
+      needsFlip: false,
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
+    };
+  }
+  if (tile.right === boardRightValue) {
+    // Flip needed, right of tile matches right of board
+    return {
+      canPlay: true,
+      position: "right",
+      needsFlip: true,
       orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
@@ -414,8 +430,6 @@ const GameRoom = () => {
   };
 
   const handlePlayTile = async () => {
-    if (!selectedTile || !game) return;
-
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(arabicText.notYourTurn);
@@ -437,11 +451,9 @@ const GameRoom = () => {
     // Create the tile to be played with correct orientation
     const isDouble = selectedTile.left === selectedTile.right;
     const tileOrientation = isDouble ? "vertical" : "horizontal";
-    
+
     let playedTile;
-    
     if (position === "first") {
-      // First tile on the board
       playedTile = {
         left: selectedTile.left,
         right: selectedTile.right,
@@ -450,45 +462,43 @@ const GameRoom = () => {
         flipped: false
       };
     } else if (position === "left") {
-      // Playing on the left end of the board
-      if (needsFlip) {
-        // Need to flip the tile to match left-to-left
+      // The right value of the new tile must match the left value of the board
+      const boardLeftValue = board[0].left;
+      if (selectedTile.right === boardLeftValue) {
         playedTile = {
-          left: selectedTile.right, // This will be the new outer left value
-          right: selectedTile.left, // This will connect with the board's left value
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: true
-        };
-      } else {
-        // Right side of tile connects to left side of board
-        playedTile = {
-          left: selectedTile.left, // This will be the new outer left value
-          right: selectedTile.right, // This will connect with the board's left value
+          left: selectedTile.left,
+          right: selectedTile.right,
           id: selectedTile.id,
           orientation: tileOrientation,
           flipped: false
+        };
+      } else {
+        playedTile = {
+          left: selectedTile.right,
+          right: selectedTile.left,
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: true
         };
       }
     } else { // position === "right"
-      // Playing on the right end of the board
-      if (needsFlip) {
-        // Need to flip the tile to match right-to-right
+      // The left value of the new tile must match the right value of the board
+      const boardRightValue = board[board.length - 1].right;
+      if (selectedTile.left === boardRightValue) {
         playedTile = {
-          left: selectedTile.left, // This will connect with the board's right value
-          right: selectedTile.right, // This will be the new outer right value
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: true
-        };
-      } else {
-        // Left side of tile connects to right side of board
-        playedTile = {
-          left: selectedTile.left, // This will connect with the board's right value
-          right: selectedTile.right, // This will be the new outer right value
+          left: selectedTile.left,
+          right: selectedTile.right,
           id: selectedTile.id,
           orientation: tileOrientation,
           flipped: false
+        };
+      } else {
+        playedTile = {
+          left: selectedTile.right,
+          right: selectedTile.left,
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: true
         };
       }
     }
@@ -500,12 +510,13 @@ const GameRoom = () => {
     } else {
       updatedBoard.push(playedTile);
     }
+    console.log('Board after play:', updatedBoard);
 
     // Check for winner and update game state
     const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
     let winner = null;
     let message = "";
-    
+
     if (updatedPlayerTiles.length === 0) {
       winner = playerNumber;
       message = `${game.players[playerNumber].name} ${arabicText.wins}`;
@@ -665,22 +676,31 @@ const GameRoom = () => {
               <div className="player-hand">
                 <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
-                  {game.players[playerNumber].tiles.map((tile, index) => (
-                    <div 
-                      key={`hand-${index}`} 
-                      className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
-                      onClick={() => handleTileSelect(tile, index)}
-                    >
-                      <div className="domino">
-                        <div className="domino-half">
-                          <DominoDots value={tile.left} />
-                        </div>
-                        <div className="domino-half">
-                          <DominoDots value={tile.right} />
+                  {game.players[playerNumber].tiles.map((tile, index) => {
+                    // Determine if this tile would be flipped if played
+                    let flipped = false;
+                    if (selectedTile && selectedTile.index === index) {
+                      const board = game.gameState.board || [];
+                      const { canPlay, needsFlip } = canPlayTile(tile, board);
+                      flipped = !!needsFlip;
+                    }
+                    return (
+                      <div 
+                        key={`hand-${index}`} 
+                        className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
+                        onClick={() => handleTileSelect(tile, index)}
+                      >
+                        <div className={`domino${flipped ? ' flipped' : ''}`}>
+                          <div className="domino-half">
+                            <DominoDots value={tile.left} />
+                          </div>
+                          <div className="domino-half">
+                            <DominoDots value={tile.right} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               
