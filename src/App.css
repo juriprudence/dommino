@@ -254,7 +254,7 @@ h1 {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   padding: 8px;
   overflow-x: auto;
   min-height: 120px;
@@ -631,7 +631,7 @@ h1 {
   }
   
   .board-tiles {
-    gap: 8px; /* Restore default gap between dominoes */
+    gap: 0;
     padding: 0;
     min-height: 100px;
   }

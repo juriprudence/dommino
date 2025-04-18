@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, update, push } from 'firebase/database';
@@ -335,6 +335,7 @@ const GameRoom = () => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedTile, setSelectedTile] = useState(null);
   const [gameMessage, setGameMessage] = useState('');
+  const boardAreaRef = useRef(null);
 
   useEffect(() => {
     console.log("Loading room:", roomId);
@@ -369,6 +370,16 @@ const GameRoom = () => {
     // Clean up subscription on unmount
     return () => unsubscribe();
   }, [roomId, playerNumber, joinDialogOpen]);
+
+  useEffect(() => {
+    // Auto-scroll board on small devices when board changes
+    if (game && game.gameState && game.gameState.board && boardAreaRef.current) {
+      if (window.innerWidth <= 768) {
+        // Scroll to the far right (end)
+        boardAreaRef.current.scrollLeft = boardAreaRef.current.scrollWidth;
+      }
+    }
+  }, [game && game.gameState && game.gameState.board && game.gameState.board.length]);
 
   const joinGame = async () => {
     if (!newPlayerName.trim()) {
@@ -650,7 +661,7 @@ const GameRoom = () => {
             </div>
           </div>
 
-          <div className="board-area">
+          <div className="board-area" ref={boardAreaRef}>
             {game.gameState.board && game.gameState.board.length > 0 ? (
               <div className="board-tiles">
                 {game.gameState.board.map((tile, index) => (
