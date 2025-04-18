@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, update, push, serverTimestamp, onDisconnect, goOffline, goOnline } from 'firebase/database';
-import './App.css'; // Make sure you have corresponding CSS styles
+import { getDatabase, ref, set, onValue, update, push } from 'firebase/database';
+import './App.css';
 
-// Firebase configuration (KEEP YOUR KEYS SECURE - consider environment variables for production)
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyABvehKr_lcwOdJExQLlwFLvtR83LTnW_8", // Replace with your actual API key
+  apiKey: "AIzaSyABvehKr_lcwOdJExQLlwFLvtR83LTnW_8",
   authDomain: "myproje-4a2e2.firebaseapp.com",
-  // IMPORTANT: Use the correct RTDB URL for your project's region. Check Firebase Console.
-  databaseURL: "https://myproje-4a2e2-default-rtdb.europe-west1.firebasedatabase.app",
+  databaseURL: "https://myproje-4a2e2.firebaseio.com",
   projectId: "myproje-4a2e2",
-  storageBucket: "myproje-4a2e2.appspot.com",
+  storageBucket: "myproje-4a2e2.appspot.com", // Fixed: incorrect storageBucket URL format
   messagingSenderId: "913698461417",
   appId: "1:913698461417:web:953647edfd328c14f7c278"
 };
@@ -20,14 +19,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Test Firebase connection and handle presence
-console.log("Firebase initializing...");
+// Test Firebase connection
+console.log("Firebase initialized");
 const connectionRef = ref(database, '.info/connected');
 onValue(connectionRef, (snap) => {
   if (snap.val() === true) {
-    console.log('Connected to Firebase Realtime Database');
+    console.log('Connected to Firebase');
   } else {
-    console.log('Not connected to Firebase Realtime Database');
+    console.log('Not connected to Firebase');
   }
 });
 
@@ -37,9 +36,8 @@ const arabicText = {
   enterName: "أدخل اسمك",
   startGame: "ابدأ لعبة جديدة",
   waiting: "...في انتظار انضمام اللاعب الثاني",
-  shareLink: "شارك هذا الرابط مع صديقك للانضمام:",
+  shareLink: "شارك هذا الرابط مع صديقك",
   copyLink: "انسخ الرابط",
-  linkCopied: "تم نسخ الرابط!",
   roomId: "رقم الغرفة",
   noTiles: "لا توجد قطع على اللوحة بعد",
   yourTiles: "قطع الدومينو الخاصة بك",
@@ -51,39 +49,23 @@ const arabicText = {
   joinGame: "انضم إلى اللعبة",
   notYourTurn: "!ليس دورك",
   cantPlay: "!لا يمكن لعب هذه القطعة هنا",
-  noTilesLeft: "!لا توجد قطع متبقية للسحب",
+  noTilesLeft: "!لا توجد قطع متبقية في الكومة",
   drew: "سحب قطعة",
-  canPlayAfterDraw: "سحب قطعة ويمكنه اللعب الآن",
-  passesAfterDraw: "سحب قطعة ولا يمكنه اللعب، يمرر الدور",
-  hasNoPlayableAndBoneyardEmpty: "لا يملك قطعًا قابلة للعب ولا يوجد قطع للسحب، يمرر الدور",
+  canPlay: "سحب قطعة ويمكنه اللعب",
+  passes: "سحب قطعة ويمرر",
+  hasNoPlayable: "ليس لديه قطع قابلة للعب ويمرر",
   you: "(أنت)",
   tiles: "القطع",
-  loading: "...جاري تحميل اللعبة",
-  gameNotFound: "اللعبة غير موجودة أو تم حذفها",
-  errorOccurred: "حدث خطأ",
-  failedToCreate: "فشل في إنشاء اللعبة",
-  failedToJoin: "فشل في الانضمام للعبة",
-  failedToPlay: "فشل في لعب القطعة",
-  failedToDraw: "فشل في سحب قطعة",
-  enterNameToJoin: "أدخل اسمك للانضمام",
-  opponentDisconnected: "الخصم غير متصل",
-  waitingForOpponent: "...في انتظار عودة الخصم",
-  gameDraw: "انتهت اللعبة بالتعادل (الطاولة مقفلة)!",
-  selectTileFirst: "اختر قطعة أولاً",
-  opponentNeedsToDraw: "قد يحتاج للسحب.",
-  yourTurnNow: "دورك الآن",
-  waitingTurn: "انتظر دورك",
-  opponentPassed: "مرر الدور", // Added missing translation
+  loading: "...جاري تحميل اللعبة", // Added missing translation
+  gameNotFound: "اللعبة غير موجودة" // Added missing translation
 };
 
-// --- Utility Functions ---
-
+// Utility Functions
 const generateDominoTiles = () => {
   const tiles = [];
   for (let i = 0; i <= 6; i++) {
     for (let j = i; j <= 6; j++) {
-      const id = i <= j ? `${i}-${j}` : `${j}-${i}`;
-      tiles.push({ left: i, right: j, id: id });
+      tiles.push({ left: i, right: j, id: `${i}-${j}` });
     }
   }
   return tiles;
@@ -98,155 +80,200 @@ const shuffleTiles = (tiles) => {
   return shuffled;
 };
 
-// --- Domino Dot Display Component ---
-const DominoDots = React.memo(({ value }) => {
+// Domino Dot Display Component
+const DominoDots = ({ value }) => {
   const renderDots = () => {
     switch (value) {
-      case 0: return <div className="dots-container empty"></div>;
-      case 1: return <div className="dots-container one"><span className="dot center"></span></div>;
-      case 2: return <div className="dots-container two"><span className="dot top-right"></span><span className="dot bottom-left"></span></div>;
-      case 3: return <div className="dots-container three"><span className="dot top-right"></span><span className="dot center"></span><span className="dot bottom-left"></span></div>;
-      case 4: return <div className="dots-container four"><span className="dot top-left"></span><span className="dot top-right"></span><span className="dot bottom-left"></span><span className="dot bottom-right"></span></div>;
-      case 5: return <div className="dots-container five"><span className="dot top-left"></span><span className="dot top-right"></span><span className="dot center"></span><span className="dot bottom-left"></span><span className="dot bottom-right"></span></div>;
-      case 6: return <div className="dots-container six"><span className="dot top-left"></span><span className="dot top-right"></span><span className="dot middle-left"></span><span className="dot middle-right"></span><span className="dot bottom-left"></span><span className="dot bottom-right"></span></div>;
-      default: return null;
+      case 0:
+        return <div className="dots-container empty"></div>;
+      case 1:
+        return (
+          <div className="dots-container one">
+            <span className="dot center"></span>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="dots-container two">
+            <span className="dot top-right"></span>
+            <span className="dot bottom-left"></span>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="dots-container three">
+            <span className="dot top-right"></span>
+            <span className="dot center"></span>
+            <span className="dot bottom-left"></span>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="dots-container four">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      case 5:
+        return (
+          <div className="dots-container five">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot center"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      case 6:
+        return (
+          <div className="dots-container six">
+            <span className="dot top-left"></span>
+            <span className="dot top-right"></span>
+            <span className="dot middle-left"></span>
+            <span className="dot middle-right"></span>
+            <span className="dot bottom-left"></span>
+            <span className="dot bottom-right"></span>
+          </div>
+        );
+      default:
+        return null;
     }
   };
+
   return renderDots();
-});
-
-// --- Core Game Logic Functions ---
-
-// ** Determines the outward-facing value at a specific end of the board **
-const getEndValue = (board, end) => {
-    if (!board || board.length === 0) return null;
-    // The board array represents the chain visually from left to right.
-    // The 'left' property of the first tile is the "leftmost" value.
-    // The 'right' property of the last tile is the "rightmost" value.
-    if (end === 'left') {
-        return board[0].left;
-    } else { // end === 'right'
-        return board[board.length - 1].right;
-    }
 };
 
-// ** Check if a tile can be played on the current board **
+// Check if a tile can be played on the board
 const canPlayTile = (tile, board) => {
-    if (!board || board.length === 0) {
-        // Any tile can start. matchingValue is irrelevant.
-        return { canPlay: true, position: "first", matchingValue: null };
-    }
+  // If board is empty, any tile can be played
+  if (!board || board.length === 0) { // Fixed: Add check for null board
+    return { canPlay: true, position: "first", orientation: "horizontal" };
+  }
 
-    const leftEndValue = getEndValue(board, 'left');
-    const rightEndValue = getEndValue(board, 'right');
+  // Check if tile can be played at the left end of the board
+  const leftEndTile = board[0];
+  const leftValue = leftEndTile.orientation === "horizontal" ? leftEndTile.left : 
+                    leftEndTile.flipped ? leftEndTile.right : leftEndTile.left;
 
-    // Check left end
-    if (tile.left === leftEndValue || tile.right === leftEndValue) {
-        // Can play left. Needs to match leftEndValue.
-        return { canPlay: true, position: "left", matchingValue: leftEndValue };
-    }
-    // Check right end
-    if (tile.left === rightEndValue || tile.right === rightEndValue) {
-        // Can play right. Needs to match rightEndValue.
-        return { canPlay: true, position: "right", matchingValue: rightEndValue };
-    }
+  // Check if tile can be played at the right end of the board
+  const rightEndTile = board[board.length - 1];
+  const rightValue = rightEndTile.orientation === "horizontal" ? rightEndTile.right :
+                     rightEndTile.flipped ? rightEndTile.left : rightEndTile.right;
 
-    return { canPlay: false };
+  const canPlayLeft = tile.left === leftValue || tile.right === leftValue;
+  const canPlayRight = tile.left === rightValue || tile.right === rightValue;
+
+  if (canPlayLeft) {
+    // Determine orientation for left placement
+    return { 
+      canPlay: true, 
+      position: "left",
+      flipped: tile.right === leftValue,
+      orientation: "horizontal"
+    };
+  }
+
+  if (canPlayRight) {
+    // Determine orientation for right placement
+    return { 
+      canPlay: true, 
+      position: "right",
+      flipped: tile.left === rightValue,
+      orientation: "horizontal"
+    };
+  }
+
+  return { canPlay: false };
 };
 
-// Check if a player has won (no tiles left)
+// Check for a game winner
 const checkWinner = (game) => {
-  if (!game || !game.players) return null;
-  if (game.players.player1?.tiles?.length === 0) return "player1";
-  if (game.players.player2?.tiles?.length === 0) return "player2";
+  if (game.players.player1.tiles.length === 0) {
+    return "player1";
+  } else if (game.players.player2.tiles.length === 0) {
+    return "player2";
+  }
   return null;
 };
 
-// Check if the game is blocked (neither player can play, boneyard empty)
-const checkBlockedGame = (game) => {
-    if (!game || !game.gameState || !game.players) return false;
-    const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
-    if (!boneyardEmpty) return false;
-    const player1Blocked = isPlayerBlocked(game.players.player1?.tiles || [], game.gameState.board || []);
-    const player2Blocked = isPlayerBlocked(game.players.player2?.tiles || [], game.gameState.board || []);
-    return player1Blocked && player2Blocked;
-};
-
-// Calculate points (sum of dots) for a player's tiles
-const calculatePoints = (tiles) => {
-    return tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-}
-
-// Check if a player is blocked (has no playable tiles)
+// Check if player is blocked (can't make a move)
 const isPlayerBlocked = (playerTiles, board) => {
-  if (!playerTiles || playerTiles.length === 0) return false; // Cannot be blocked if no tiles
-  if (!board || board.length === 0) return false; // Never blocked if board is empty
-
+  if (!board || board.length === 0) return false; // Fixed: Add check for null board
+  
   for (const tile of playerTiles) {
     const { canPlay } = canPlayTile(tile, board);
-    if (canPlay) return false; // Found a playable tile
+    if (canPlay) return false;
   }
-  return true; // No playable tiles found
+  
+  return true;
 };
 
-// --- Home Component (Landing Page) ---
+// Home Component (Landing Page)
 const Home = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
 
-  const handleStartGame = async () => {
+  const handleStartGame = () => {
     if (!playerName.trim()) {
-      setError(arabicText.enterName);
+      setError('Please enter a name');
       return;
     }
-    if (isCreating) return;
-    setIsCreating(true);
-    setError('');
 
     try {
       console.log("Creating new game...");
+      // Create a reference for a new game with an auto-generated ID
       const gamesRef = ref(database, 'games');
       const newGameRef = push(gamesRef);
       const gameId = newGameRef.key;
-
-      if (!gameId) throw new Error("Failed to get unique game ID from Firebase.");
-
+      
       console.log("Game ID:", gameId);
-
+      
+      // Generate and shuffle tiles
       const tiles = generateDominoTiles();
       const shuffledTiles = shuffleTiles(tiles);
+      
       const player1Tiles = shuffledTiles.slice(0, 7);
       const player2Tiles = shuffledTiles.slice(7, 14);
       const boneyard = shuffledTiles.slice(14);
-
-      const initialGameData = {
-        gameId: gameId,
+      
+      // Set basic game data
+      set(newGameRef, {
         players: {
-          player1: { id: 'player1', name: playerName, tiles: player1Tiles, connected: true, lastSeen: serverTimestamp() },
-          player2: { id: 'player2', name: '', tiles: player2Tiles, connected: false, lastSeen: null }
+          player1: {
+            name: playerName,
+            tiles: player1Tiles,
+            connected: true
+          },
+          player2: {
+            name: '',
+            tiles: player2Tiles,
+            connected: false
+          }
         },
         gameState: {
-          status: 'waiting', currentPlayerIndex: 0, board: [], boneyard: boneyard,
-          timestamp: serverTimestamp(), winner: null, message: `${playerName} ${arabicText.startGame}`,
-          turnStartTime: null,
+          status: 'waiting',
+          currentPlayerIndex: 0,
+          board: [],
+          boneyard: boneyard,
+          timestamp: Date.now(),
+          winner: null,
+          message: ""
         }
-      };
-
-      await set(newGameRef, initialGameData);
-      console.log("Game data saved successfully");
-
-      localStorage.setItem('playerName', playerName);
-      localStorage.setItem('playerNumber', 'player1');
-      localStorage.setItem('currentGameId', gameId);
-
-      navigate(`/room/${gameId}`);
-
+      }).then(() => {
+        console.log("Game data saved successfully");
+        localStorage.setItem('playerName', playerName);
+        localStorage.setItem('playerNumber', 'player1');
+        navigate(`/room/${gameId}`);
+      }).catch(error => {
+        console.error("Firebase set error:", error);
+        setError('Failed to create game: ' + error.message);
+      });
     } catch (error) {
-      console.error("Firebase set error:", error);
-      setError(`${arabicText.failedToCreate}: ${error.message}`);
-      setIsCreating(false);
+      console.error("General error:", error);
+      setError('Failed to create game: ' + error.message);
     }
   };
 
@@ -254,638 +281,442 @@ const Home = () => {
     <div className="home-container">
       <div className="domino-logo">
         <div className="logo-domino">
-          <div className="domino-half"><DominoDots value={6} /></div>
-          <div className="domino-half"><DominoDots value={6} /></div>
+          <div className="domino-half">
+            <DominoDots value={6} />
+          </div>
+          <div className="domino-half">
+            <DominoDots value={6} />
+          </div>
         </div>
       </div>
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="start-game-form">
         <input
-          type="text" placeholder={arabicText.enterName} value={playerName}
+          type="text"
+          placeholder={arabicText.enterName}
+          value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
-          className="player-name-input arabic-input" maxLength={20} dir="rtl"
+          className="player-name-input arabic-input"
+          dir="rtl"
         />
         {error && <p className="error-message">{error}</p>}
-        <button
-           onClick={handleStartGame} className="start-game-button arabic-text"
-           disabled={isCreating}
-        >
-          {isCreating ? arabicText.loading : arabicText.startGame}
+        <button onClick={handleStartGame} className="start-game-button arabic-text">
+          {arabicText.startGame}
         </button>
       </div>
     </div>
   );
 };
 
-
-// --- Game Room Component ---
+// Game Room Component
 const GameRoom = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [playerNumber, setPlayerNumber] = useState(localStorage.getItem('playerNumber') || null);
-  const [playerName, setPlayerName] = useState(localStorage.getItem('playerName') || '');
+  const [playerNumber, setPlayerNumber] = useState(localStorage.getItem('playerNumber') || '');
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
-  const [selectedTile, setSelectedTile] = useState(null); // { tile: { left, right, id }, index: number }
+  const [selectedTile, setSelectedTile] = useState(null);
   const [gameMessage, setGameMessage] = useState('');
-  const [showCopyFeedback, setShowCopyFeedback] = useState(false);
 
-  // Establish presence for the current player
   useEffect(() => {
-    if (!roomId || !playerNumber) return;
-
-    const playerRef = ref(database, `games/${roomId}/players/${playerNumber}`);
-    const playerConnectedRef = ref(database, `games/${roomId}/players/${playerNumber}/connected`);
-    const playerLastSeenRef = ref(database, `games/${roomId}/players/${playerNumber}/lastSeen`);
-
-    let presenceIntervalId = null;
-
-    const presenceListener = onValue(connectionRef, (snap) => {
-        const isConnected = snap.val() === true;
-        if (!isConnected) {
-            set(playerLastSeenRef, serverTimestamp());
-            if (presenceIntervalId) clearInterval(presenceIntervalId); // Stop periodic updates if disconnected
-            return;
-        }
-
-        set(playerConnectedRef, true);
-        onDisconnect(playerRef).update({
-            connected: false,
-            lastSeen: serverTimestamp()
-        }).catch(err => console.error("Firebase onDisconnect error:", err));
-
-        // Update lastSeen periodically while connected
-        if (presenceIntervalId) clearInterval(presenceIntervalId); // Clear previous interval if any
-        presenceIntervalId = setInterval(() => {
-            set(playerLastSeenRef, serverTimestamp()).catch(err => console.warn("Error updating lastSeen:", err));
-        }, 60 * 1000); // Update every minute
-
-    });
-
-    // Clean up on unmount
-    return () => {
-        presenceListener(); // Detach the listener
-        if (presenceIntervalId) clearInterval(presenceIntervalId);
-        onDisconnect(playerRef).cancel().catch(err => console.warn("Error cancelling onDisconnect:", err));
-        // Optional: Force offline status on manual leave?
-        // update(playerRef, { connected: false, lastSeen: serverTimestamp() });
-    };
-
-  }, [roomId, playerNumber]);
-
-
-  // Fetch game data and subscribe to updates
-  useEffect(() => {
-    console.log(`Loading room: ${roomId}, Player: ${playerNumber || 'N/A'}`);
-    setLoading(true);
-    setError('');
+    console.log("Loading room:", roomId);
     const gameRef = ref(database, `games/${roomId}`);
-
+    
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
-      console.log("Game data received:", data);
-
+      console.log("Game data:", data);
+      
       if (!data) {
-        setError(arabicText.gameNotFound);
-        setGame(null);
+        setError('Game not found');
         setLoading(false);
-        localStorage.removeItem('currentGameId'); // Clear local state if game disappears
-        localStorage.removeItem('playerNumber');
         return;
       }
-
+      
       setGame(data);
-      setGameMessage(data.gameState.message || '');
+      if (data.gameState.message) {
+        setGameMessage(data.gameState.message);
+      }
       setLoading(false);
 
-      const storedPlayerNumber = localStorage.getItem('playerNumber');
-      const storedGameId = localStorage.getItem('currentGameId');
-
-      // Logic to handle joining or identifying existing player
-      if (data.gameState.status === 'waiting' && data.players.player2 && !data.players.player2.name && storedGameId === roomId && storedPlayerNumber === 'player1') {
-        setPlayerNumber('player1');
-        setPlayerName(data.players.player1.name);
-        setJoinDialogOpen(false);
-      } else if (data.gameState.status === 'waiting' && data.players.player2 && !data.players.player2.connected && (!storedPlayerNumber || storedGameId !== roomId) && !joinDialogOpen) {
-         console.log("Opening join dialog for Player 2");
-         setJoinDialogOpen(true);
-         setPlayerNumber(null);
-      } else if (storedPlayerNumber && storedGameId === roomId) {
-          setPlayerNumber(storedPlayerNumber);
-          setPlayerName(localStorage.getItem('playerName') || '');
-          setJoinDialogOpen(false);
-      } else if (data.gameState.status !== 'waiting' && (!storedPlayerNumber || storedGameId !== roomId)) {
-          setError("Game already in progress or finished.");
-          // navigate('/'); // Option to redirect spectators
+      // Check if player2 spot is open and you're not already player1
+      if (data.players.player2 && !data.players.player2.connected && playerNumber !== 'player1' && !joinDialogOpen) {
+        setJoinDialogOpen(true);
       }
-
     }, (err) => {
       console.error("Firebase onValue error:", err);
-      setError(`${arabicText.errorOccurred}: ${err.message}`);
+      setError('Error loading game: ' + err.message);
       setLoading(false);
     });
 
-    return () => {
-        console.log("Unsubscribing from game updates:", roomId);
-        unsubscribe();
-    };
-  }, [roomId, joinDialogOpen, navigate, playerNumber]); // Rerun if these change
+    // Clean up subscription on unmount
+    return () => unsubscribe();
+  }, [roomId, playerNumber, joinDialogOpen]);
 
-  // --- Game Actions ---
-
-  const joinGame = useCallback(async () => {
+  const joinGame = async () => {
     if (!newPlayerName.trim()) {
-      setError(arabicText.enterNameToJoin);
+      setError('Please enter a name');
       return;
     }
-    if (!game || game.players.player2.connected) {
-        setError("Cannot join game now.");
-        return;
-    }
-    setError('');
 
     try {
-      console.log(`Player ${newPlayerName} joining as Player 2`);
-      const updates = {
-        [`players/player2/name`]: newPlayerName,
-        [`players/player2/connected`]: true,
-        [`players/player2/lastSeen`]: serverTimestamp(),
-        [`gameState/status`]: 'playing',
-        [`gameState/message`]: `${game.players.player1.name} ${arabicText.yourTurnNow}`,
-        [`gameState/turnStartTime`]: serverTimestamp()
-      };
+      // Update player2 info
+      await update(ref(database, `games/${roomId}/players/player2`), {
+        name: newPlayerName,
+        connected: true
+      });
 
-      await update(ref(database, `games/${roomId}`), updates);
+      // If both players are now connected, start the game
+      await update(ref(database, `games/${roomId}/gameState`), {
+        status: 'playing'
+      });
 
       localStorage.setItem('playerName', newPlayerName);
       localStorage.setItem('playerNumber', 'player2');
-      localStorage.setItem('currentGameId', roomId);
-      setPlayerName(newPlayerName);
-      setPlayerNumber('player2'); // Update state immediately
+      setPlayerNumber('player2');
       setJoinDialogOpen(false);
-      console.log("Joined successfully");
-
     } catch (error) {
-      console.error("Join game error:", error);
-      setError(`${arabicText.failedToJoin}: ${error.message}`);
+      setError('Failed to join game');
+      console.error(error);
     }
-  }, [roomId, game, newPlayerName, navigate]);
+  };
 
-  const copyGameLink = useCallback(() => {
-    const link = window.location.href;
+  const copyGameLink = () => {
+    const link = `https://juriprudence.github.io/dommino/#/room/${roomId}`;
     navigator.clipboard.writeText(link)
       .then(() => {
-        setShowCopyFeedback(true);
-        setTimeout(() => setShowCopyFeedback(false), 2000);
+        alert('Game link copied to clipboard!');
       })
       .catch(err => {
         console.error('Failed to copy: ', err);
-        alert("Failed to copy link automatically.");
+        // Fallback for browsers that don't support clipboard API
+        const tempInput = document.createElement('input');
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        alert('Game link copied to clipboard!');
       });
-  }, []);
+  };
 
-  const handleTileSelect = useCallback((tile, index) => {
-    if (!game || !isMyTurn() || game.gameState.status !== 'playing') return;
-    console.log("Selected tile:", tile, "at index:", index);
-    setSelectedTile({ tile: { ...tile }, index });
-    setGameMessage(''); // Clear previous messages
-  }, [game, isMyTurn]); // Dependency needs isMyTurn
+  const handleTileSelect = (tile, index) => {
+    // Only allow selecting tile if it's your turn
+    if (!game) return; // Fixed: Add check for null game
+    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    if (playerNumber !== currentPlayerNumber) {
+      setGameMessage(arabicText.notYourTurn);
+      return;
+    }
 
-    // Helper to check if it's the current user's turn (memoized)
-    const isMyTurn = useCallback(() => {
-        if (!game || !playerNumber || game.gameState.status !== 'playing') return false;
-        const currentPlayerId = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
-        return playerNumber === currentPlayerId;
-    }, [game, playerNumber]);
+    setSelectedTile({ ...tile, index });
+  };
 
+  const handlePlayTile = async () => {
+    if (!selectedTile || !game) return; // Fixed: Add check for null game
 
-  // ** Handle Playing a Tile (with Corrected Flipping Logic) **
-  const handlePlayTile = useCallback(async () => {
-    if (!selectedTile || !game || !isMyTurn() || game.gameState.status !== 'playing') {
-        console.warn("Play condition not met:", { selectedTile, game, isMyTurn: isMyTurn(), status: game?.gameState?.status });
-        if (!selectedTile && isMyTurn()) setGameMessage(arabicText.selectTileFirst);
-        else if (!isMyTurn()) setGameMessage(arabicText.notYourTurn);
-        return;
+    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    if (playerNumber !== currentPlayerNumber) {
+      setGameMessage(arabicText.notYourTurn);
+      return;
     }
 
     const board = game.gameState.board || [];
-    const { canPlay, position, matchingValue } = canPlayTile(selectedTile.tile, board);
+    const { canPlay, position, flipped, orientation } = canPlayTile(selectedTile, board);
 
     if (!canPlay) {
       setGameMessage(arabicText.cantPlay);
-      setSelectedTile(null);
       return;
     }
 
-    try {
-        const updates = {};
-        const currentPlayerTiles = [...game.players[playerNumber].tiles];
-        // ** IMPORTANT: Use a deep copy for the tile to modify **
-        const playedTileData = JSON.parse(JSON.stringify(currentPlayerTiles.splice(selectedTile.index, 1)[0]));
-        updates[`players/${playerNumber}/tiles`] = currentPlayerTiles;
+    // Clone the player's tiles and remove the played tile
+    const updatedPlayerTiles = [...game.players[playerNumber].tiles];
+    updatedPlayerTiles.splice(selectedTile.index, 1);
 
-        let tileToAdd = playedTileData;
-        tileToAdd.orientation = (tileToAdd.left === tileToAdd.right) ? "vertical" : "horizontal";
-
-        // --- *** CORRECTED TILE FLIPPING LOGIC *** ---
-        if (position !== 'first') {
-            if (position === 'left') {
-                // Playing on the left end (unshift). RIGHT side must match board's leftEndValue.
-                if (tileToAdd.left === matchingValue) {
-                    [tileToAdd.left, tileToAdd.right] = [tileToAdd.right, tileToAdd.left]; // Flip
-                    console.log(`Flipped ${selectedTile.tile.id} to ${tileToAdd.left}|${tileToAdd.right} for left placement`);
-                }
-            } else { // position === 'right'
-                // Playing on the right end (push). LEFT side must match board's rightEndValue.
-                if (tileToAdd.right === matchingValue) {
-                    [tileToAdd.left, tileToAdd.right] = [tileToAdd.right, tileToAdd.left]; // Flip
-                    console.log(`Flipped ${selectedTile.tile.id} to ${tileToAdd.left}|${tileToAdd.right} for right placement`);
-                }
-            }
-        }
-        // --- *** END OF CORRECTION *** ---
-
-        let updatedBoard = [...board];
-        if (position === "first" || position === "left") {
-            updatedBoard.unshift(tileToAdd);
-            console.log(`Board: Adding ${tileToAdd.left}|${tileToAdd.right} to start`);
-        } else {
-            updatedBoard.push(tileToAdd);
-            console.log(`Board: Adding ${tileToAdd.left}|${tileToAdd.right} to end`);
-        }
-        updates[`gameState/board`] = updatedBoard;
-
-        // Check for Winner / Draw / Next Turn
-        let winner = null;
-        let gameEndStatus = game.gameState.status;
-        let message = ""; // Will be set below
-        const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
-        const nextPlayerNumber = nextPlayerIndex === 0 ? 'player1' : 'player2';
-        const opponentName = game.players[nextPlayerNumber]?.name || 'الخصم';
-
-        if (currentPlayerTiles.length === 0) {
-            winner = playerNumber;
-            gameEndStatus = "finished";
-            message = `${playerName} ${arabicText.wins}`;
-            updates[`gameState/winner`] = winner;
-            updates[`gameState/status`] = gameEndStatus;
-            console.log("Winner detected:", playerNumber);
-        } else {
-            // Switch Player
-            updates[`gameState/currentPlayerIndex`] = nextPlayerIndex;
-            updates[`gameState/turnStartTime`] = serverTimestamp();
-
-            // Check if next player is blocked
-            const nextPlayerTiles = game.players[nextPlayerNumber]?.tiles || [];
-            const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
-            message = `${opponentName} ${arabicText.yourTurnNow}`; // Default message for next player
-
-            if (isPlayerBlocked(nextPlayerTiles, updatedBoard)) {
-                 if (boneyardEmpty) {
-                     // Both players blocked, boneyard empty -> DRAW
-                     if (isPlayerBlocked(currentPlayerTiles, updatedBoard)) {
-                          gameEndStatus = "finished";
-                          winner = 'draw';
-                          message = arabicText.gameDraw;
-                          updates[`gameState/status`] = gameEndStatus;
-                          updates[`gameState/winner`] = winner;
-                          console.log("Game Draw detected");
-                     } else {
-                          // Next player blocked & boneyard empty, but current *could* play (shouldn't happen in standard dominoes after a valid play)
-                          message = `${opponentName} ${arabicText.hasNoPlayableAndBoneyardEmpty}`;
-                          console.warn("Next player blocked (boneyard empty), current is not? Odd state.");
-                     }
-                 } else {
-                     // Next player blocked, but can draw
-                     message = `${opponentName} ${arabicText.opponentNeedsToDraw}`; // More specific message
-                     console.log("Next player blocked, needs to draw.");
-                 }
-            }
-        }
-
-        updates[`gameState/message`] = message;
-        await update(ref(database, `games/${roomId}`), updates);
-        setSelectedTile(null);
-
-    } catch (error) {
-        console.error("Error playing tile:", error);
-        setError(`${arabicText.failedToPlay}: ${error.message}`);
-    }
-  }, [selectedTile, game, playerNumber, playerName, roomId, isMyTurn, arabicText]);
-
-
-  const handleDrawTile = useCallback(async () => {
-    if (!game || !isMyTurn() || game.gameState.status !== 'playing') return;
-
-    const boneyard = game.gameState.boneyard || [];
-    const board = game.gameState.board || [];
-    const playerTiles = game.players[playerNumber].tiles || [];
-    const playerIsCurrentlyBlocked = isPlayerBlocked(playerTiles, board);
-
-    if (boneyard.length === 0) {
-      setGameMessage(arabicText.noTilesLeft);
-      if (playerIsCurrentlyBlocked) {
-        // Must pass turn if blocked and boneyard empty
-        try {
-            const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
-            const nextPlayerNumber = nextPlayerIndex === 0 ? 'player1' : 'player2';
-            const opponentName = game.players[nextPlayerNumber]?.name || 'الخصم';
-            let message = `${playerName} ${arabicText.opponentPassed}. ${opponentName} ${arabicText.yourTurnNow}`;
-            let updates = {
-                currentPlayerIndex: nextPlayerIndex,
-                turnStartTime: serverTimestamp(),
-                message: message
-            };
-
-             // Check for immediate Draw if other player is also blocked
-             const otherPlayerTiles = game.players[nextPlayerNumber]?.tiles || [];
-             if(isPlayerBlocked(otherPlayerTiles, board)) {
-                 updates.message = arabicText.gameDraw;
-                 updates.status = 'finished';
-                 updates.winner = 'draw';
-                 console.log("Game Draw detected (pass blocked player, other also blocked)");
-             } else {
-                 console.log("Player passing turn (blocked, boneyard empty)");
-             }
-            await update(ref(database, `games/${roomId}/gameState`), updates);
-        } catch (error) {
-            console.error("Error passing turn:", error);
-            setError("Failed to pass turn.");
-        }
-      } else {
-          // Boneyard empty, but player *can* play.
-          setGameMessage("لا يمكنك السحب، لديك قطعة للعب!");
+    // Create a new board with the played tile
+    let updatedBoard = [...board];
+    // Determine orientation: double = vertical, else horizontal
+    let tileOrientation = (selectedTile.left === selectedTile.right) ? "vertical" : "horizontal";
+    let left = selectedTile.left;
+    let right = selectedTile.right;
+    if (position === "left") {
+      const leftValue = board.length > 0 ? (board[0].orientation === "vertical" ? board[0].left : (board[0].flipped ? board[0].right : board[0].left)) : null;
+      // Ensure right value matches leftValue
+      if (right !== leftValue) {
+        // Swap
+        [left, right] = [right, left];
       }
-      return;
+    } else if (position === "right") {
+      const rightValue = board.length > 0 ? (board[board.length - 1].orientation === "vertical" ? board[board.length - 1].right : (board[board.length - 1].flipped ? board[board.length - 1].left : board[board.length - 1].right)) : null;
+      // Ensure left value matches rightValue
+      if (left !== rightValue) {
+        // Swap
+        [left, right] = [right, left];
+      }
+    }
+    const playedTile = {
+      left,
+      right,
+      id: selectedTile.id,
+      flipped: false,
+      orientation: tileOrientation
+    };
+
+    if (position === "first" || position === "left") {
+      updatedBoard.unshift(playedTile);
+    } else {
+      updatedBoard.push(playedTile);
     }
 
-    // --- Boneyard is not empty ---
+    // Check if a player has won
+    const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
+    let winner = null;
+    let message = "";
+    
+    if (updatedPlayerTiles.length === 0) {
+      winner = playerNumber;
+      message = `${game.players[playerNumber].name} ${arabicText.wins}`;
+    }
+
+    // Update game state in Firebase
     try {
-      const updates = {};
-      const drawnTile = boneyard[0];
-      const updatedBoneyard = boneyard.slice(1);
-      const updatedPlayerTiles = [...playerTiles, drawnTile];
+      const updates = {
+        [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
+        [`gameState/board`]: updatedBoard,
+        [`gameState/currentPlayerIndex`]: nextPlayerIndex
+      };
 
-      updates[`players/${playerNumber}/tiles`] = updatedPlayerTiles;
-      updates[`gameState/boneyard`] = updatedBoneyard;
-
-      const canPlayAfterDraw = !isPlayerBlocked(updatedPlayerTiles, board);
-      let message = `${playerName} ${arabicText.drew}`;
-
-      if (canPlayAfterDraw) {
-        message += `. ${arabicText.canPlayAfterDraw}`;
+      if (winner) {
+        updates[`gameState/winner`] = winner;
+        updates[`gameState/status`] = "finished";
         updates[`gameState/message`] = message;
-        updates[`gameState/turnStartTime`] = serverTimestamp(); // Reset timer, turn stays
-        console.log("Player drew, can play now.");
-      } else {
-        // Drew and still cannot play. Pass the turn.
-        const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
-        const nextPlayerNumber = nextPlayerIndex === 0 ? 'player1' : 'player2';
-        const opponentName = game.players[nextPlayerNumber]?.name || 'الخصم';
-        message += `. ${arabicText.passesAfterDraw}. ${opponentName} ${arabicText.yourTurnNow}`;
-        updates[`gameState/currentPlayerIndex`] = nextPlayerIndex;
-        updates[`gameState/turnStartTime`] = serverTimestamp();
-        updates[`gameState/message`] = message;
-        console.log("Player drew, still blocked, passing turn.");
-
-        // Check for Draw if boneyard just became empty AND next player is blocked
-        if (updatedBoneyard.length === 0) {
-             const nextPlayerTiles = game.players[nextPlayerNumber]?.tiles || [];
-             if (isPlayerBlocked(nextPlayerTiles, board)) {
-                  updates[`gameState/message`] = arabicText.gameDraw;
-                  updates[`gameState/status`] = 'finished';
-                  updates[`gameState/winner`] = 'draw';
-                  console.log("Game Draw detected (drew last tile, next player blocked)");
-             }
-        }
       }
 
       await update(ref(database, `games/${roomId}`), updates);
       setSelectedTile(null);
+    } catch (error) {
+      console.error("Error updating game:", error);
+      setError("Failed to play tile");
+    }
+  };
 
+  const handleDrawTile = async () => {
+    if (!game) return; // Fixed: Add check for null game
+    
+    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    if (playerNumber !== currentPlayerNumber) {
+      setGameMessage(arabicText.notYourTurn);
+      return;
+    }
+
+    if (!game.gameState.boneyard || game.gameState.boneyard.length === 0) { // Fixed: Check for null boneyard
+      setGameMessage(arabicText.noTilesLeft);
+      
+      // If boneyard is empty and player can't play, skip turn
+      const canPlay = !isPlayerBlocked(game.players[playerNumber].tiles, game.gameState.board);
+      if (!canPlay) {
+        const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
+        await update(ref(database, `games/${roomId}/gameState`), {
+          currentPlayerIndex: nextPlayerIndex,
+          message: `${game.players[playerNumber].name} ${arabicText.hasNoPlayable}`
+        });
+      }
+      return;
+    }
+
+    // Draw a tile from the boneyard
+    const drawnTile = game.gameState.boneyard[0];
+    const updatedBoneyard = game.gameState.boneyard.slice(1);
+    const updatedPlayerTiles = [...game.players[playerNumber].tiles, drawnTile];
+
+    // Check if the drawn tile can be played
+    const { canPlay } = canPlayTile(drawnTile, game.gameState.board);
+    const nextPlayerIndex = canPlay ? game.gameState.currentPlayerIndex : 
+                           (game.gameState.currentPlayerIndex === 0 ? 1 : 0);
+
+    const message = canPlay ? 
+      `${game.players[playerNumber].name} ${arabicText.canPlay}` :
+      `${game.players[playerNumber].name} ${arabicText.passes}`;
+
+    try {
+      await update(ref(database, `games/${roomId}`), {
+        [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
+        [`gameState/boneyard`]: updatedBoneyard,
+        [`gameState/currentPlayerIndex`]: nextPlayerIndex,
+        [`gameState/message`]: message
+      });
     } catch (error) {
       console.error("Error drawing tile:", error);
-      setError(`${arabicText.failedToDraw}: ${error.message}`);
+      setError("Failed to draw tile");
     }
-  }, [game, playerNumber, playerName, roomId, isMyTurn, arabicText]);
+  };
 
-
-  // Helper to get opponent's player number
-  const getOpponentNumber = useCallback(() => {
-      if (!playerNumber) return null;
-      return playerNumber === 'player1' ? 'player2' : 'player1';
-  }, [playerNumber]);
-
-  // --- Render Logic ---
+  const isMyTurn = () => {
+    if (!game || !playerNumber) return false;
+    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    return playerNumber === currentPlayerNumber;
+  };
 
   if (loading) {
-    return <div className="loading arabic-text">{arabicText.loading}</div>;
+    return <div className="loading arabic-text">{arabicText.loading}</div>; // Fixed: Use translation
   }
 
-  if (error && !game) {
-    return <div className="error-fullpage arabic-text">{error}</div>;
+  if (error) {
+    return <div className="error arabic-text">{error}</div>;
   }
 
-  if (joinDialogOpen) {
-     return (
-        <div className="game-room" dir="rtl">
-             <h1 className="arabic-text">{arabicText.gameTitle}</h1>
-             <div className="join-dialog">
-                <h2 className="arabic-text">{arabicText.joinGame}</h2>
-                {error && <p className="error-message">{error}</p>}
-                <input
-                    type="text" placeholder={arabicText.enterName} value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
-                    className="player-name-input arabic-input" maxLength={20} dir="rtl"
-                />
-                <button onClick={joinGame} className="join-button arabic-text">
-                    {arabicText.joinGame}
-                </button>
-             </div>
-        </div>
-     );
+  if (!game) {
+    return <div className="error arabic-text">{arabicText.gameNotFound}</div>; // Fixed: Use translation
   }
 
-  if (!game || !playerNumber) {
-      console.error("Game rendering error: No game data or playerNumber.", { game, playerNumber });
-      return <div className="error-fullpage arabic-text">{error || arabicText.errorOccurred + ": الحالة غير متوقعة."}</div>;
-  }
-
+  // Check if game is in waiting state
   const isWaiting = game.gameState.status === 'waiting';
-  const isPlaying = game.gameState.status === 'playing';
   const isFinished = game.gameState.status === 'finished';
-  const opponentNumber = getOpponentNumber();
-  const opponent = opponentNumber ? game.players[opponentNumber] : null;
-  const opponentConnected = opponent?.connected;
 
   return (
     <div className="game-room" dir="rtl">
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
-
-      {error && <div className="error-inline arabic-text">{error}</div>}
-
       <div className="game-info">
-        <span className="arabic-text">{arabicText.roomId}: {roomId}</span>
-        {isWaiting && (
-            <button onClick={copyGameLink} className="copy-link-button arabic-text">
-                {showCopyFeedback ? arabicText.linkCopied : arabicText.copyLink}
-            </button>
-        )}
+        <p className="arabic-text">{arabicText.roomId}: {roomId}</p>
+        <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
       </div>
 
       {gameMessage && (
-        <div className={`game-message arabic-text ${isMyTurn() ? 'my-turn-message' : ''}`}>
+        <div className="game-message arabic-text">
           {gameMessage}
         </div>
       )}
-       {!opponentConnected && isPlaying && (
-          <div className="game-message error-message arabic-text">
-              {arabicText.opponentDisconnected}. {arabicText.waitingForOpponent}
-          </div>
-      )}
 
-      {isWaiting && playerNumber === 'player1' && (
+      {isWaiting ? (
         <div className="waiting-screen">
           <h2 className="arabic-text">{arabicText.waiting}</h2>
           <p className="arabic-text">{arabicText.shareLink}</p>
-          <p className="game-link">{window.location.href}</p>
-          {/* Copy button is now in the game-info bar */}
+          <p className="game-link">https://juriprudence.github.io/dommino/#/room/{roomId}</p>
+          <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
         </div>
-      )}
-
-      {(isPlaying || isFinished) && (
-        <div className="game-content">
+      ) : (
+        <div className="game-board">
           <div className="players-info">
-            {/* Player 1 Info */}
-            <div className={`player-info ${game.gameState.currentPlayerIndex === 0 && isPlaying ? 'active-turn' : ''} ${!game.players.player1.connected && isPlaying ? 'disconnected' : ''}`}>
-              <h3 className="arabic-text player-name">
-                {game.players.player1.name} {playerNumber === 'player1' ? arabicText.you : ''}
-                {!game.players.player1.connected && isPlaying && <span className="status-indicator"> (غير متصل)</span>}
-              </h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players.player1?.tiles?.length ?? '?'}</p>
+            <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}>
+              <h3 className="arabic-text">{game.players.player1.name} {playerNumber === 'player1' ? arabicText.you : ''}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players.player1.tiles.length}</p>
             </div>
-             {/* Boneyard Info */}
-             <div className="boneyard-info">
-                <span className="domino-icon">🦴</span>
-                <span className="arabic-text"> ({game.gameState.boneyard?.length ?? 0})</span>
-             </div>
-            {/* Player 2 Info */}
-            <div className={`player-info ${game.gameState.currentPlayerIndex === 1 && isPlaying ? 'active-turn' : ''} ${!game.players.player2.connected && isPlaying ? 'disconnected' : ''}`}>
-              <h3 className="arabic-text player-name">
-                {game.players.player2.name || '؟؟؟'} {playerNumber === 'player2' ? arabicText.you : ''}
-                 {!game.players.player2.connected && isPlaying && <span className="status-indicator"> (غير متصل)</span>}
-              </h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players.player2?.tiles?.length ?? '?'}</p>
+            <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}>
+              <h3 className="arabic-text">{game.players.player2.name} {playerNumber === 'player2' ? arabicText.you : ''}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players.player2.tiles.length}</p>
             </div>
           </div>
 
-          <div className="board-area-container">
-             <div className="board-area">
-                {game.gameState.board && game.gameState.board.length > 0 ? (
-                <div className="board-tiles">
-                    {game.gameState.board.map((tile, index) => (
-                    <div key={`${tile.id}-${index}`} className={`board-tile-wrapper ${tile.orientation}`}>
-                        <div title={`${tile.left}|${tile.right}`} className={`domino ${tile.orientation}`}>
-                        <div className="domino-half"><DominoDots value={tile.left} /></div>
-                        <div className="domino-half"><DominoDots value={tile.right} /></div>
-                        </div>
+          <div className="board-area">
+            {game.gameState.board && game.gameState.board.length > 0 ? (
+              <div className="board-tiles">
+                {game.gameState.board.map((tile, index) => (
+                  <div key={`board-${index}`} className="board-tile">
+                    <div className={`domino ${tile.orientation} ${tile.flipped ? 'flipped' : ''}`}>
+                      <div className="domino-half">
+                        <DominoDots value={tile.left} />
+                      </div>
+                      <div className="domino-half">
+                        <DominoDots value={tile.right} />
+                      </div>
                     </div>
-                    ))}
-                </div>
-                ) : (
-                <p className="arabic-text no-tiles-message">{arabicText.noTiles}</p>
-                )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="arabic-text">{arabicText.noTiles}</p>
+            )}
           </div>
 
-          {isPlaying && playerNumber && game.players[playerNumber]?.tiles && (
+          {!isFinished && playerNumber && game.players[playerNumber] && (
             <div className="player-controls">
               <div className="player-hand">
+                <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
                   {game.players[playerNumber].tiles.map((tile, index) => (
-                    <div
-                      key={`${tile.id}-hand-${index}`}
-                      className={`hand-tile ${selectedTile?.index === index ? 'selected' : ''} ${!isMyTurn() ? 'disabled' : ''}`}
+                    <div 
+                      key={`hand-${index}`} 
+                      className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
                       onClick={() => handleTileSelect(tile, index)}
-                      title={`${tile.left}|${tile.right}`}
                     >
                       <div className="domino">
-                        <div className="domino-half"><DominoDots value={tile.left} /></div>
-                        <div className="domino-half"><DominoDots value={tile.right} /></div>
+                        <div className="domino-half">
+                          <DominoDots value={tile.left} />
+                        </div>
+                        <div className="domino-half">
+                          <DominoDots value={tile.right} />
+                        </div>
                       </div>
                     </div>
                   ))}
-                   {game.players[playerNumber].tiles.length === 0 && isPlaying && (
-                      <p className="arabic-text">لا تملك قطعًا!</p>
-                   )}
                 </div>
               </div>
-
+              
               <div className="game-actions">
-                <button
-                  onClick={handlePlayTile}
-                  disabled={!selectedTile || !isMyTurn() || !opponentConnected}
-                  className={`action-button play-button arabic-text ${(!selectedTile || !isMyTurn() || !opponentConnected) ? 'disabled' : ''}`}
-                  title={!selectedTile ? arabicText.selectTileFirst : !isMyTurn() ? arabicText.notYourTurn : !opponentConnected ? arabicText.opponentDisconnected : arabicText.playTile}
+                <button 
+                  onClick={handlePlayTile} 
+                  disabled={!selectedTile || !isMyTurn()}
+                  className={`play-button arabic-text ${!selectedTile || !isMyTurn() ? 'disabled' : ''}`}
                 >
                   {arabicText.playTile}
                 </button>
-                <button
+                <button 
                   onClick={handleDrawTile}
-                  disabled={!isMyTurn() || (game.gameState.boneyard?.length === 0) || !opponentConnected}
-                  className={`action-button draw-button arabic-text ${(!isMyTurn() || (game.gameState.boneyard?.length === 0) || !opponentConnected) ? 'disabled' : ''}`}
-                  title={!isMyTurn() ? arabicText.notYourTurn : (game.gameState.boneyard?.length === 0) ? arabicText.noTilesLeft : !opponentConnected ? arabicText.opponentDisconnected : arabicText.drawTile}
+                  disabled={!isMyTurn() || !game.gameState.boneyard || game.gameState.boneyard.length === 0} // Fixed: Check for null boneyard
+                  className={`draw-button arabic-text ${!isMyTurn() || !game.gameState.boneyard || game.gameState.boneyard.length === 0 ? 'disabled' : ''}`}
                 >
-                  {arabicText.drawTile}
+                  {arabicText.drawTile} ({game.gameState.boneyard ? game.gameState.boneyard.length : 0}) {/* Fixed: Check for null boneyard */}
                 </button>
               </div>
             </div>
           )}
 
-          {isFinished && (
+          {isFinished && game.gameState.winner && game.players[game.gameState.winner] && ( // Fixed: Added checks to prevent errors
             <div className="game-over">
               <h2 className="arabic-text">{arabicText.gameOver}</h2>
-              {game.gameState.winner === 'draw' ? (
-                  <p className="arabic-text winner-message">{arabicText.gameDraw}</p>
-              ) : game.gameState.winner && game.players[game.gameState.winner] ? (
-                 <p className="arabic-text winner-message">
-                     {game.players[game.gameState.winner].name} {arabicText.wins}
-                </p>
-              ) : (
-                  <p className="arabic-text winner-message">انتهت اللعبة.</p>
-              )}
-              <button onClick={() => {
-                  localStorage.removeItem('currentGameId');
-                  localStorage.removeItem('playerNumber');
-                  navigate('/');
-                }}
-                className="action-button new-game-button arabic-text">
+              <p className="arabic-text">{game.players[game.gameState.winner].name} {arabicText.wins}</p>
+              <button onClick={() => navigate('/')} className="new-game-button arabic-text">
                 {arabicText.newGame}
               </button>
             </div>
           )}
         </div>
       )}
+
+      {joinDialogOpen && (
+        <div className="join-dialog">
+          <h2 className="arabic-text">{arabicText.joinGame}</h2>
+          <input
+            type="text"
+            placeholder={arabicText.enterName}
+            value={newPlayerName}
+            onChange={(e) => setNewPlayerName(e.target.value)}
+            className="player-name-input arabic-input"
+            dir="rtl"
+          />
+          <button onClick={joinGame} className="join-button arabic-text">{arabicText.joinGame}</button>
+        </div>
+      )}
     </div>
   );
 };
 
-// --- Main App Component ---
+// The drawTile function declaration was unused and conflicted with the handleDrawTile method
+// So it has been removed as it wasn't being used properly
+
 function App() {
-    return (
-        <Router>
-            <div className="App">
-                <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/room/:roomId" element={<GameRoom />} />
-                <Route path="*" element={ <div className="error-fullpage arabic-text"><h1>404 - الصفحة غير موجودة</h1><a href="/#/">العودة للرئيسية</a></div>} />
-                </Routes>
-            </div>
-        </Router>
-    );
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/room/:roomId" element={<GameRoom />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
 export default App;
