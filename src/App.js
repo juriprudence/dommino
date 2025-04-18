@@ -160,26 +160,26 @@ const canPlayTile = (tile, board) => {
   const boardLeftValue = leftEndTile ? leftEndTile.left : null;
   const boardRightValue = rightEndTile ? rightEndTile.right : null;
 
-  // For RTL layout, we need to check connections in reverse
-  const canPlayRightWithLeft = tile.left === boardLeftValue;
-  const canPlayRightWithRight = tile.right === boardLeftValue;
-  const canPlayLeftWithLeft = tile.left === boardRightValue;
-  const canPlayLeftWithRight = tile.right === boardRightValue;
-
-  if (canPlayRightWithLeft || canPlayRightWithRight) {
-    return {
-      canPlay: true,
-      position: "right", // In RTL, this will be visually on the right
-      needsFlip: canPlayRightWithRight,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
-  }
+  // Check if the tile can be played on either end
+  const canPlayLeftWithLeft = tile.left === boardLeftValue;
+  const canPlayLeftWithRight = tile.right === boardLeftValue;
+  const canPlayRightWithLeft = tile.left === boardRightValue;
+  const canPlayRightWithRight = tile.right === boardRightValue;
 
   if (canPlayLeftWithLeft || canPlayLeftWithRight) {
     return {
       canPlay: true,
-      position: "left", // In RTL, this will be visually on the left
-      needsFlip: canPlayLeftWithRight,
+      position: "left",
+      needsFlip: canPlayLeftWithLeft, // We need to flip if we're connecting left-to-left
+      orientation: tile.left === tile.right ? "vertical" : "horizontal"
+    };
+  }
+
+  if (canPlayRightWithLeft || canPlayRightWithRight) {
+    return {
+      canPlay: true,
+      position: "right",
+      needsFlip: canPlayRightWithRight, // We need to flip if we're connecting right-to-right
       orientation: tile.left === tile.right ? "vertical" : "horizontal"
     };
   }
@@ -438,22 +438,60 @@ const GameRoom = () => {
     const isDouble = selectedTile.left === selectedTile.right;
     const tileOrientation = isDouble ? "vertical" : "horizontal";
     
-    // Determine the correct left and right values based on position
-    let left = selectedTile.left;
-    let right = selectedTile.right;
+    let playedTile;
     
-    if (needsFlip && !isDouble) {
-      // Swap values if needed to match the connection point
-      [left, right] = [right, left];
+    if (position === "first") {
+      // First tile on the board
+      playedTile = {
+        left: selectedTile.left,
+        right: selectedTile.right,
+        id: selectedTile.id,
+        orientation: tileOrientation,
+        flipped: false
+      };
+    } else if (position === "left") {
+      // Playing on the left end of the board
+      if (needsFlip) {
+        // Need to flip the tile to match left-to-left
+        playedTile = {
+          left: selectedTile.right, // This will be the new outer left value
+          right: selectedTile.left, // This will connect with the board's left value
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: true
+        };
+      } else {
+        // Right side of tile connects to left side of board
+        playedTile = {
+          left: selectedTile.left, // This will be the new outer left value
+          right: selectedTile.right, // This will connect with the board's left value
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: false
+        };
+      }
+    } else { // position === "right"
+      // Playing on the right end of the board
+      if (needsFlip) {
+        // Need to flip the tile to match right-to-right
+        playedTile = {
+          left: selectedTile.left, // This will connect with the board's right value
+          right: selectedTile.right, // This will be the new outer right value
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: true
+        };
+      } else {
+        // Left side of tile connects to right side of board
+        playedTile = {
+          left: selectedTile.left, // This will connect with the board's right value
+          right: selectedTile.right, // This will be the new outer right value
+          id: selectedTile.id,
+          orientation: tileOrientation,
+          flipped: false
+        };
+      }
     }
-
-    const playedTile = {
-      left,
-      right,
-      id: selectedTile.id,
-      orientation: tileOrientation,
-      flipped: false
-    };
 
     // Update the board
     let updatedBoard = [...board];
@@ -694,9 +732,6 @@ const GameRoom = () => {
     </div>
   );
 };
-
-// The drawTile function declaration was unused and conflicted with the handleDrawTile method
-// So it has been removed as it wasn't being used properly
 
 function App() {
   return (
