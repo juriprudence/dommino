@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "myproje-4a2e2.firebaseapp.com",
   databaseURL: "https://myproje-4a2e2.firebaseio.com",
   projectId: "myproje-4a2e2",
-  storageBucket: "myproje-4a2e2.firebasestorage.app",
+  storageBucket: "myproje-4a2e2.appspot.com", // Fixed: incorrect storageBucket URL format
   messagingSenderId: "913698461417",
   appId: "1:913698461417:web:953647edfd328c14f7c278"
 };
@@ -56,6 +56,8 @@ const arabicText = {
   hasNoPlayable: "ليس لديه قطع قابلة للعب ويمرر",
   you: "(أنت)",
   tiles: "القطع",
+  loading: "...جاري تحميل اللعبة", // Added missing translation
+  gameNotFound: "اللعبة غير موجودة" // Added missing translation
 };
 
 // Utility Functions
@@ -146,7 +148,7 @@ const DominoDots = ({ value }) => {
 // Check if a tile can be played on the board
 const canPlayTile = (tile, board) => {
   // If board is empty, any tile can be played
-  if (board.length === 0) {
+  if (!board || board.length === 0) { // Fixed: Add check for null board
     return { canPlay: true, position: "first", orientation: "horizontal" };
   }
 
@@ -186,32 +188,6 @@ const canPlayTile = (tile, board) => {
   return { canPlay: false };
 };
 
-// Draw tile from boneyard
-const drawTile = (gameId, playerNumber) => {
-  const gameRef = ref(database, `games/${gameId}`);
-  
-  onValue(gameRef, (snapshot) => {
-    const game = snapshot.val();
-    if (!game) return;
-
-    // Check if boneyard has tiles
-    if (game.gameState.boneyard.length === 0) return;
-
-    // Take the first tile from boneyard
-    const drawnTile = game.gameState.boneyard[0];
-    const updatedBoneyard = game.gameState.boneyard.slice(1);
-    
-    // Add the tile to player's hand
-    const playerTiles = [...game.players[playerNumber].tiles, drawnTile];
-    
-    // Update the game state
-    update(ref(database, `games/${gameId}`), {
-      [`players/${playerNumber}/tiles`]: playerTiles,
-      [`gameState/boneyard`]: updatedBoneyard
-    });
-  }, { onlyOnce: true });
-};
-
 // Check for a game winner
 const checkWinner = (game) => {
   if (game.players.player1.tiles.length === 0) {
@@ -224,7 +200,7 @@ const checkWinner = (game) => {
 
 // Check if player is blocked (can't make a move)
 const isPlayerBlocked = (playerTiles, board) => {
-  if (board.length === 0) return false;
+  if (!board || board.length === 0) return false; // Fixed: Add check for null board
   
   for (const tile of playerTiles) {
     const { canPlay } = canPlayTile(tile, board);
@@ -409,12 +385,26 @@ const GameRoom = () => {
 
   const copyGameLink = () => {
     const link = `${window.location.origin}/room/${roomId}`;
-    navigator.clipboard.writeText(link);
-    alert('Game link copied to clipboard!');
+    navigator.clipboard.writeText(link)
+      .then(() => {
+        alert('Game link copied to clipboard!');
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        // Fallback for browsers that don't support clipboard API
+        const tempInput = document.createElement('input');
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        alert('Game link copied to clipboard!');
+      });
   };
 
   const handleTileSelect = (tile, index) => {
     // Only allow selecting tile if it's your turn
+    if (!game) return; // Fixed: Add check for null game
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(arabicText.notYourTurn);
@@ -425,7 +415,7 @@ const GameRoom = () => {
   };
 
   const handlePlayTile = async () => {
-    if (!selectedTile) return;
+    if (!selectedTile || !game) return; // Fixed: Add check for null game
 
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
@@ -448,7 +438,9 @@ const GameRoom = () => {
     // Create a new board with the played tile
     let updatedBoard = [...board];
     const playedTile = {
-      ...selectedTile,
+      left: selectedTile.left,
+      right: selectedTile.right,
+      id: selectedTile.id,
       flipped: flipped || false,
       orientation: orientation || "horizontal"
     };
@@ -492,13 +484,15 @@ const GameRoom = () => {
   };
 
   const handleDrawTile = async () => {
+    if (!game) return; // Fixed: Add check for null game
+    
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(arabicText.notYourTurn);
       return;
     }
 
-    if (game.gameState.boneyard.length === 0) {
+    if (!game.gameState.boneyard || game.gameState.boneyard.length === 0) { // Fixed: Check for null boneyard
       setGameMessage(arabicText.noTilesLeft);
       
       // If boneyard is empty and player can't play, skip turn
@@ -547,7 +541,7 @@ const GameRoom = () => {
   };
 
   if (loading) {
-    return <div className="loading arabic-text">...جاري تحميل اللعبة</div>;
+    return <div className="loading arabic-text">{arabicText.loading}</div>; // Fixed: Use translation
   }
 
   if (error) {
@@ -555,7 +549,7 @@ const GameRoom = () => {
   }
 
   if (!game) {
-    return <div className="error arabic-text">اللعبة غير موجودة</div>;
+    return <div className="error arabic-text">{arabicText.gameNotFound}</div>; // Fixed: Use translation
   }
 
   // Check if game is in waiting state
@@ -651,16 +645,16 @@ const GameRoom = () => {
                 </button>
                 <button 
                   onClick={handleDrawTile}
-                  disabled={!isMyTurn() || game.gameState.boneyard.length === 0}
-                  className={`draw-button arabic-text ${!isMyTurn() || game.gameState.boneyard.length === 0 ? 'disabled' : ''}`}
+                  disabled={!isMyTurn() || !game.gameState.boneyard || game.gameState.boneyard.length === 0} // Fixed: Check for null boneyard
+                  className={`draw-button arabic-text ${!isMyTurn() || !game.gameState.boneyard || game.gameState.boneyard.length === 0 ? 'disabled' : ''}`}
                 >
-                  {arabicText.drawTile} ({game.gameState.boneyard.length})
+                  {arabicText.drawTile} ({game.gameState.boneyard ? game.gameState.boneyard.length : 0}) {/* Fixed: Check for null boneyard */}
                 </button>
               </div>
             </div>
           )}
 
-          {isFinished && (
+          {isFinished && game.gameState.winner && game.players[game.gameState.winner] && ( // Fixed: Added checks to prevent errors
             <div className="game-over">
               <h2 className="arabic-text">{arabicText.gameOver}</h2>
               <p className="arabic-text">{game.players[game.gameState.winner].name} {arabicText.wins}</p>
@@ -689,6 +683,9 @@ const GameRoom = () => {
     </div>
   );
 };
+
+// The drawTile function declaration was unused and conflicted with the handleDrawTile method
+// So it has been removed as it wasn't being used properly
 
 function App() {
   return (
