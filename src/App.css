@@ -1,38 +1,232 @@
+/* App.css */
 .App {
   text-align: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* Home Page Styles */
+.home-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  min-height: 70vh;
+}
+
+.start-game-form {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.player-name-input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.start-game-button, .copy-link-button, .join-button, .draw-button, .new-game-button {
+  padding: 12px 20px;
+  background-color: #4CAF50;
   color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
-.App-link {
-  color: #61dafb;
+.start-game-button:hover, .copy-link-button:hover, .join-button:hover, .draw-button:hover, .new-game-button:hover {
+  background-color: #45a049;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.draw-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin: 0;
+}
+
+/* Game Room Styles */
+.game-room {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.game-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.waiting-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 40px 0;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.game-link {
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.players-info {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.player {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.player.active {
+  background-color: #e8f5e9;
+  border: 2px solid #4CAF50;
+  transform: scale(1.05);
+}
+
+.board-area {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  min-height: 100px;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #e8f5e9;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.board-tile {
+  display: inline-block;
+}
+
+.domino {
+  display: flex;
+  background-color: white;
+  border: 2px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.domino-half {
+  width: 30px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.domino-half:first-child {
+  border-right: 1px solid #333;
+}
+
+.player-hand {
+  margin-top: 20px;
+}
+
+.tiles {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.hand-tile {
+  cursor: default;
+  transition: transform 0.2s;
+}
+
+.hand-tile.playable {
+  cursor: pointer;
+}
+
+.hand-tile.playable:hover {
+  transform: translateY(-10px);
+}
+
+.placement-choice {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+}
+
+.placement-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.placement-buttons button {
+  padding: 8px 15px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.placement-buttons button:last-child {
+  background-color: #f44336;
+}
+
+.join-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  padding: 30px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 1000;
+}
+
+.game-over {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #e8f5e9;
+  border-radius: 8px;
+  border: 2px solid #4CAF50;
+}
+
+.loading, .error {
+  margin: 100px auto;
+  font-size: 18px;
+}
+
+.error {
+  color: #d32f2f;
 }
