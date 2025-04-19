@@ -15,6 +15,8 @@ export const arabicText = {
   drawTile: "اسحب قطعة",
   gameOver: "انتهت اللعبة!",
   wins: "فاز!",
+  winsLowPoints: "فاز بأقل عدد من النقاط!",
+  gameTied: "تعادل في اللعبة!",
   newGame: "لعبة جديدة",
   joinGame: "انضم إلى اللعبة",
   notYourTurn: "!ليس دورك",
@@ -27,7 +29,20 @@ export const arabicText = {
   you: "(أنت)",
   tiles: "القطع",
   loading: "...جاري تحميل اللعبة",
-  gameNotFound: "اللعبة غير موجودة"
+  gameNotFound: "اللعبة غير موجودة",
+  played: "لعب قطعة",
+  
+  // AI related translations
+  aiMode: "العب ضد الذكاء الاصطناعي",
+  multiplayerMode: "العب مع صديق",
+  aiDifficulty: "مستوى الصعوبة",
+  easy: "سهل",
+  medium: "متوسط",
+  hard: "صعب",
+  aiPlayerName: "الخصم الآلي",
+  aiIndicator: "(ذكاء اصطناعي)",
+  aiThinking: "يفكر",
+  aiModeActive: "وضع الذكاء الاصطناعي"
 };
 
 // Utility Functions
@@ -115,6 +130,25 @@ export const checkWinner = (game) => {
   } else if (game.players.player2.tiles.length === 0) {
     return "player2";
   }
+  
+  // Check if game is deadlocked (both players can't play)
+  const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
+  const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
+  
+  if (p1Blocked && p2Blocked && (!game.gameState.boneyard || game.gameState.boneyard.length === 0)) {
+    // Calculate points - player with lowest points wins
+    const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+    const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+    
+    if (p1Points < p2Points) {
+      return "player1";
+    } else if (p2Points < p1Points) {
+      return "player2";
+    } else {
+      return "tie"; // Game is tied
+    }
+  }
+  
   return null;
 };
 
@@ -128,6 +162,11 @@ export const isPlayerBlocked = (playerTiles, board) => {
   }
   
   return true;
+};
+
+// Calculate total points in a player's hand
+export const calculatePoints = (tiles) => {
+  return tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
 };
 
 // Firebase configuration

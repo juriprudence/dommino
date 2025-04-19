@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getDatabase, ref, onValue, update } from 'firebase/database';
 import { arabicText, canPlayTile, isPlayerBlocked } from './util';
 import DominoDots from './DominoDots';
+import AIPlayer from './AIPlayer';
+import WinnerDisplay from './WinnerDisplay';
 
 // Game Room Component
 const GameRoom = () => {
@@ -16,7 +18,9 @@ const GameRoom = () => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedTile, setSelectedTile] = useState(null);
   const [gameMessage, setGameMessage] = useState('');
+  const [aiThinking, setAiThinking] = useState(false);
   const boardAreaRef = useRef(null);
+  const aiRef = useRef(null);
   const database = getDatabase();
 
   useEffect(() => {
@@ -39,8 +43,29 @@ const GameRoom = () => {
       }
       setLoading(false);
 
+      // Create AI player instance if not already created
+      if (data.gameState.gameMode === 'ai' && !aiRef.current) {
+        aiRef.current = new AIPlayer(data.gameState.aiDifficulty);
+      }
+
+      // If it's AI's turn, make a move after a small delay
+      if (
+        data.gameState.gameMode === 'ai' && 
+        data.gameState.status === 'playing' && 
+        data.gameState.currentPlayerIndex === 1 &&
+        !data.gameState.winner
+      ) {
+        handleAIMove(data);
+      }
+
       // Check if player2 spot is open and you're not already player1
-      if (data.players.player2 && !data.players.player2.connected && playerNumber !== 'player1' && !joinDialogOpen) {
+      if (
+        data.gameState.gameMode !== 'ai' && 
+        data.players.player2 && 
+        !data.players.player2.connected && 
+        playerNumber !== 'player1' && 
+        !joinDialogOpen
+      ) {
         setJoinDialogOpen(true);
       }
     }, (err) => {
@@ -62,6 +87,191 @@ const GameRoom = () => {
       }
     }
   }, [game && game.gameState && game.gameState.board && game.gameState.board.length]);
+
+  const handleAIMove = async (gameData) => {
+    if (aiThinking) return; // Prevent multiple AI moves at once
+    
+    setAiThinking(true);
+    
+    // Add a small delay to make the AI "think"
+    setTimeout(async () => {
+      try {
+        if (!aiRef.current) {
+          aiRef.current = new AIPlayer(gameData.gameState.aiDifficulty);
+        }
+        
+        const aiPlayer = aiRef.current;
+        const aiTiles = gameData.players.player2.tiles;
+        const board = gameData.gameState.board || [];
+        const boneyard = gameData.gameState.boneyard;
+        
+        // Get AI's decision
+        const aiMove = aiPlayer.makeMove(aiTiles, board, boneyard);
+        
+        if (aiMove.action === 'play') {
+          // AI wants to play a tile
+          const selectedTile = {
+            ...aiTiles[aiMove.tileIndex],
+            index: aiMove.tileIndex
+          };
+          
+          // Clone the player's tiles and remove the played tile
+          const updatedAiTiles = [...aiTiles];
+          updatedAiTiles.splice(aiMove.tileIndex, 1);
+          
+          // Create the tile to be played with correct orientation
+          const isDouble = selectedTile.left === selectedTile.right;
+          const tileOrientation = isDouble ? "vertical" : "horizontal";
+          
+          let playedTile;
+          const position = aiMove.position;
+          
+          if (position === "first") {
+            playedTile = {
+              left: selectedTile.left,
+              right: selectedTile.right,
+              id: selectedTile.id,
+              orientation: tileOrientation,
+              flipped: false
+            };
+          } else if (position === "left") {
+            // The right value of the new tile must match the left value of the board
+            const boardLeftValue = board[0].left;
+            if (selectedTile.right === boardLeftValue) {
+              playedTile = {
+                left: selectedTile.left,
+                right: selectedTile.right,
+                id: selectedTile.id,
+                orientation: tileOrientation,
+                flipped: false
+              };
+            } else {
+              playedTile = {
+                left: selectedTile.right,
+                right: selectedTile.left,
+                id: selectedTile.id,
+                orientation: tileOrientation,
+                flipped: true
+              };
+            }
+          } else { // position === "right"
+            // The left value of the new tile must match the right value of the board
+            const boardRightValue = board[board.length - 1].right;
+            if (selectedTile.left === boardRightValue) {
+              playedTile = {
+                left: selectedTile.left,
+                right: selectedTile.right,
+                id: selectedTile.id,
+                orientation: tileOrientation,
+                flipped: false
+              };
+            } else {
+              playedTile = {
+                left: selectedTile.right,
+                right: selectedTile.left,
+                id: selectedTile.id,
+                orientation: tileOrientation,
+                flipped: true
+              };
+            }
+          }
+          
+          // Update the board
+          let updatedBoard = [...board];
+          if (position === "first" || position === "left") {
+            updatedBoard.unshift(playedTile);
+          } else {
+            updatedBoard.push(playedTile);
+          }
+          
+          // Update game state
+          const nextPlayerIndex = 0; // Back to human player
+          let winner = null;
+          let message = "";
+          
+          if (updatedAiTiles.length === 0) {
+            winner = "player2";
+            message = `${gameData.players.player2.name} ${arabicText.wins}`;
+          }
+          
+          const updates = {
+            [`players/player2/tiles`]: updatedAiTiles,
+            [`gameState/board`]: updatedBoard,
+            [`gameState/currentPlayerIndex`]: nextPlayerIndex,
+            [`gameState/message`]: `${gameData.players.player2.name} ${arabicText.played}`
+          };
+          
+          if (winner) {
+            updates[`gameState/winner`] = winner;
+            updates[`gameState/status`] = "finished";
+            updates[`gameState/message`] = message;
+          }
+          
+          await update(ref(database, `games/${roomId}`), updates);
+          
+        } else if (aiMove.action === 'draw') {
+          // AI wants to draw a tile
+          const drawnTile = boneyard[0];
+          const updatedBoneyard = boneyard.slice(1);
+          const updatedAiTiles = [...aiTiles, drawnTile];
+          
+          // Check if the drawn tile can be played
+          const { canPlay } = canPlayTile(drawnTile, board);
+          const nextPlayerIndex = canPlay ? 1 : 0; // Stay AI's turn if can play, otherwise human's turn
+          
+          const message = canPlay ? 
+            `${gameData.players.player2.name} ${arabicText.canPlay}` :
+            `${gameData.players.player2.name} ${arabicText.passes}`;
+          
+          await update(ref(database, `games/${roomId}`), {
+            [`players/player2/tiles`]: updatedAiTiles,
+            [`gameState/boneyard`]: updatedBoneyard,
+            [`gameState/currentPlayerIndex`]: nextPlayerIndex,
+            [`gameState/message`]: message
+          });
+          
+          // If AI can play the drawn tile, it will make another move on the next game update
+          
+        } else {
+          // AI passes
+          await update(ref(database, `games/${roomId}/gameState`), {
+            currentPlayerIndex: 0, // Back to human player
+            message: `${gameData.players.player2.name} ${arabicText.passes}`
+          });
+          
+          // Check if both players are blocked
+          const humanBlocked = isPlayerBlocked(gameData.players.player1.tiles, board);
+          if (humanBlocked) {
+            // Game is deadlocked - determine winner by remaining pip count
+            const p1Points = gameData.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+            const p2Points = gameData.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+            
+            let winner, message;
+            if (p1Points < p2Points) {
+              winner = "player1";
+              message = `${gameData.players.player1.name} ${arabicText.winsLowPoints}`;
+            } else if (p2Points < p1Points) {
+              winner = "player2";
+              message = `${gameData.players.player2.name} ${arabicText.winsLowPoints}`;
+            } else {
+              winner = "tie";
+              message = arabicText.gameTied;
+            }
+            
+            await update(ref(database, `games/${roomId}/gameState`), {
+              winner: winner,
+              status: "finished",
+              message: message
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error during AI move:", error);
+      } finally {
+        setAiThinking(false);
+      }
+    }, 1500); // 1.5 second delay for "thinking"
+  };
 
   const joinGame = async () => {
     if (!newPlayerName.trim()) {
@@ -203,7 +413,6 @@ const GameRoom = () => {
     } else {
       updatedBoard.push(playedTile);
     }
-    console.log('Board after play:', updatedBoard);
 
     // Check for winner and update game state
     const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
@@ -219,7 +428,8 @@ const GameRoom = () => {
       const updates = {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
         [`gameState/board`]: updatedBoard,
-        [`gameState/currentPlayerIndex`]: nextPlayerIndex
+        [`gameState/currentPlayerIndex`]: nextPlayerIndex,
+        [`gameState/message`]: `${game.players[playerNumber].name} ${arabicText.played}`
       };
 
       if (winner) {
@@ -264,7 +474,6 @@ const GameRoom = () => {
     const drawnTile = game.gameState.boneyard[0];
     const updatedBoneyard = game.gameState.boneyard.slice(1);
     const updatedPlayerTiles = [...game.players[playerNumber].tiles, drawnTile];
-
     // Check if the drawn tile can be played
     const { canPlay } = canPlayTile(drawnTile, game.gameState.board);
     const nextPlayerIndex = canPlay ? game.gameState.currentPlayerIndex : 
@@ -293,6 +502,15 @@ const GameRoom = () => {
     return playerNumber === currentPlayerNumber;
   };
 
+  const startNewGame = async () => {
+    try {
+      navigate('/');
+    } catch (error) {
+      console.error("Error starting new game:", error);
+      setError("Failed to start new game");
+    }
+  };
+
   if (loading) {
     return <div className="loading arabic-text">{arabicText.loading}</div>;
   }
@@ -308,13 +526,19 @@ const GameRoom = () => {
   // Check if game is in waiting state
   const isWaiting = game.gameState.status === 'waiting';
   const isFinished = game.gameState.status === 'finished';
+  const isAiMode = game.gameState.gameMode === 'ai';
 
   return (
     <div className="game-room" dir="rtl">
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="game-info">
         <p className="arabic-text">{arabicText.roomId}: {roomId}</p>
-        <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
+        {!isAiMode && (
+          <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
+        )}
+        {isAiMode && (
+          <span className="ai-mode-indicator arabic-text">{arabicText.aiModeActive} ({arabicText[game.gameState.aiDifficulty]})</span>
+        )}
       </div>
 
       {gameMessage && (
@@ -338,8 +562,9 @@ const GameRoom = () => {
               <p className="arabic-text">{arabicText.tiles}: {game.players.player1.tiles.length}</p>
             </div>
             <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}>
-              <h3 className="arabic-text">{game.players.player2.name} {playerNumber === 'player2' ? arabicText.you : ''}</h3>
+              <h3 className="arabic-text">{game.players.player2.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}</h3>
               <p className="arabic-text">{arabicText.tiles}: {game.players.player2.tiles.length}</p>
+              {aiThinking && <div className="ai-thinking arabic-text">{arabicText.aiThinking}...</div>}
             </div>
           </div>
 
@@ -407,14 +632,12 @@ const GameRoom = () => {
             </div>
           )}
 
-          {isFinished && game.gameState.winner && game.players[game.gameState.winner] && (
-            <div className="game-over">
-              <h2 className="arabic-text">{arabicText.gameOver}</h2>
-              <p className="arabic-text">{game.players[game.gameState.winner].name} {arabicText.wins}</p>
-              <button onClick={() => navigate('/')} className="new-game-button arabic-text">
-                {arabicText.newGame}
-              </button>
-            </div>
+          {isFinished && game.gameState.winner && (
+            <WinnerDisplay 
+              winner={game.gameState.winner === 'tie' ? 'tie' : game.players[game.gameState.winner]} 
+              onNewGame={startNewGame}
+              isTie={game.gameState.winner === 'tie'}
+            />
           )}
         </div>
       )}
