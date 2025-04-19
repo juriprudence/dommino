@@ -235,15 +235,16 @@ h1 {
 
 .board-area {
   background-color: var(--dark-color);
-  padding: 15px;
+  padding: 0px;
   border-radius: 15px;
   min-height: 120px;
   display: flex;
   justify-content: center;
   align-items: center;
   box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.3);
-  margin: 15px 0;
+  margin: 0px 0;
   overflow-x: auto;
+  overflow-y: hidden;
   color: var(--light-color);
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   direction: ltr; /* Keep domino layout left-to-right */
@@ -252,12 +253,15 @@ h1 {
 .board-tiles {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 0;
-  padding: 8px;
+  padding: 8px 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
-  min-height: 120px;
+  box-sizing: border-box;
 }
 
 /* Domino styling */
@@ -613,6 +617,7 @@ h1 {
   .domino {
     width: 60px;
     height: 30px;
+    margin: 1px;
   }
   
   .domino.vertical {
@@ -627,17 +632,17 @@ h1 {
   
   .board-area {
     min-height: 140px;
-    padding: 24px 24px; /* Add more padding to left/right edge */
+    padding: 20px 24px;
     overflow-x: auto;
     overflow-y: hidden;
-    min-width: 600px; /* Ensure more horizontal scroll room */
+    min-width: 0;
   }
   
   .board-tiles {
-    gap: 0;
-    padding: 0;
-    min-height: 100px;
-    min-width: 600px; /* Ensure more horizontal scroll room for dominoes */
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
   }
   
   .players-info {
