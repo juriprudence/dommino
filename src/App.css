@@ -117,7 +117,7 @@ h1 {
   font-weight: bold;
 }
 
-.start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button {
+.start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
   background-color: var(--primary-color);
   color: white;
   border: none;
@@ -135,13 +135,17 @@ h1 {
   min-height: 50px; /* Ensure buttons are large enough to tap */
 }
 
-.start-game-button:hover, .copy-link-button:hover, .play-button:hover, .draw-button:hover, .join-button:hover, .new-game-button:hover {
+.return-home-button {
+  margin-bottom: 10px;
+}
+
+.start-game-button:hover, .copy-link-button:hover, .play-button:hover, .draw-button:hover, .join-button:hover, .new-game-button:hover, .return-home-button:hover {
   background-color: var(--button-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
-.start-game-button:active, .copy-link-button:active, .play-button:active, .draw-button:active, .join-button:active, .new-game-button:active {
+.start-game-button:active, .copy-link-button:active, .play-button:active, .draw-button:active, .join-button:active, .new-game-button:active, .return-home-button:active {
   transform: translateY(1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -776,7 +780,7 @@ h1 {
 
 /* Prevent text selection on mobile */
 .domino, .hand-tile, .start-game-button, .copy-link-button, 
-.play-button, .draw-button, .join-button, .new-game-button {
+.play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
   user-select: none;
   -webkit-user-select: none;
 }

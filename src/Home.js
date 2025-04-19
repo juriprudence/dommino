@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, set, push } from 'firebase/database';
+import { getDatabase, ref, set, push, update } from 'firebase/database';
 import { arabicText, generateDominoTiles, shuffleTiles } from './util';
 import DominoDots from './DominoDots';
 
@@ -9,13 +9,17 @@ const Home = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
-  const [playMode, setPlayMode] = useState('multiplayer'); // 'multiplayer' or 'ai'
+  const [playMode, setPlayMode] = useState('multiplayer'); // 'multiplayer', 'ai', or 'anyone'
   const [aiDifficulty, setAiDifficulty] = useState('medium'); // 'easy', 'medium', 'hard'
   const database = getDatabase();
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!playerName.trim()) {
       setError('Please enter a name');
+      return;
+    }
+    if (playMode === 'anyone') {
+      await handlePlayWithAnyone();
       return;
     }
 
@@ -78,6 +82,91 @@ const Home = () => {
     }
   };
 
+  // --- Matchmaking for "Play with Anyone" ---
+  const handlePlayWithAnyone = async () => {
+    if (!playerName.trim()) {
+      setError('Please enter a name');
+      return;
+    }
+    setError('');
+    const database = getDatabase();
+    const gamesRef = ref(database, 'games');
+    // Find a waiting matchmaking game
+    let found = false;
+    let foundGameId = null;
+    let foundGameData = null;
+    // Use a one-time read to find a waiting game
+    await new Promise((resolve) => {
+      import('firebase/database').then(({ get, child }) => {
+        get(gamesRef).then(snapshot => {
+          if (snapshot.exists()) {
+            snapshot.forEach(childSnap => {
+              const val = childSnap.val();
+              if (val && val.gameState && val.gameState.gameMode === 'anyone' && val.gameState.status === 'waiting') {
+                found = true;
+                foundGameId = childSnap.key;
+                foundGameData = val;
+                return true; // break
+              }
+            });
+          }
+          resolve();
+        });
+      });
+    });
+    if (found && foundGameId && foundGameData) {
+      // Join as player2
+      await update(ref(database, `games/${foundGameId}/players/player2`), {
+        name: playerName,
+        connected: true
+      });
+      await update(ref(database, `games/${foundGameId}/gameState`), {
+        status: 'playing'
+      });
+      localStorage.setItem('playerName', playerName);
+      localStorage.setItem('playerNumber', 'player2');
+      navigate(`/room/${foundGameId}`);
+    } else {
+      // Create a new waiting game
+      const newGameRef = push(gamesRef);
+      const gameId = newGameRef.key;
+      const tiles = generateDominoTiles();
+      const shuffledTiles = shuffleTiles(tiles);
+      const player1Tiles = shuffledTiles.slice(0, 7);
+      const player2Tiles = shuffledTiles.slice(7, 14);
+      const boneyard = shuffledTiles.slice(14);
+      const gameData = {
+        players: {
+          player1: {
+            name: playerName,
+            tiles: player1Tiles,
+            connected: true
+          },
+          player2: {
+            name: '',
+            tiles: player2Tiles,
+            connected: false
+          }
+        },
+        gameState: {
+          status: 'waiting',
+          currentPlayerIndex: 0,
+          board: [],
+          boneyard: boneyard,
+          timestamp: Date.now(),
+          winner: null,
+          message: '',
+          gameMode: 'anyone',
+          aiDifficulty: null
+        }
+      };
+      await set(newGameRef, gameData);
+      localStorage.setItem('playerName', playerName);
+      localStorage.setItem('playerNumber', 'player1');
+      navigate(`/room/${gameId}`);
+    }
+  };
+
   return (
     <div className="home-container">
       <div className="domino-logo">
@@ -120,6 +209,15 @@ const Home = () => {
                 onChange={() => setPlayMode('ai')}
               />
               {arabicText.aiMode}
+            </label>
+            <label>
+              <input
+                type="radio"
+                value="anyone"
+                checked={playMode === 'anyone'}
+                onChange={() => setPlayMode('anyone')}
+              />
+              العب مع أي شخص
             </label>
           </div>
           

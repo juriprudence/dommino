@@ -101,7 +101,7 @@ const GameRoom = () => {
         }
         
         const aiPlayer = aiRef.current;
-        const aiTiles = gameData.players.player2.tiles;
+        const aiTiles = gameData.players?.player2?.tiles || [];
         const board = gameData.gameState.board || [];
         const boneyard = gameData.gameState.boneyard;
         
@@ -191,14 +191,14 @@ const GameRoom = () => {
           
           if (updatedAiTiles.length === 0) {
             winner = "player2";
-            message = `${gameData.players.player2.name} ${arabicText.wins}`;
+            message = `${gameData.players?.player2?.name} ${arabicText.wins}`;
           }
           
           const updates = {
             [`players/player2/tiles`]: updatedAiTiles,
             [`gameState/board`]: updatedBoard,
             [`gameState/currentPlayerIndex`]: nextPlayerIndex,
-            [`gameState/message`]: `${gameData.players.player2.name} ${arabicText.played}`
+            [`gameState/message`]: `${gameData.players?.player2?.name} ${arabicText.played}`
           };
           
           if (winner) {
@@ -220,8 +220,8 @@ const GameRoom = () => {
           const nextPlayerIndex = canPlay ? 1 : 0; // Stay AI's turn if can play, otherwise human's turn
           
           const message = canPlay ? 
-            `${gameData.players.player2.name} ${arabicText.canPlay}` :
-            `${gameData.players.player2.name} ${arabicText.passes}`;
+            `${gameData.players?.player2?.name} ${arabicText.canPlay}` :
+            `${gameData.players?.player2?.name} ${arabicText.passes}`;
           
           await update(ref(database, `games/${roomId}`), {
             [`players/player2/tiles`]: updatedAiTiles,
@@ -236,23 +236,23 @@ const GameRoom = () => {
           // AI passes
           await update(ref(database, `games/${roomId}/gameState`), {
             currentPlayerIndex: 0, // Back to human player
-            message: `${gameData.players.player2.name} ${arabicText.passes}`
+            message: `${gameData.players?.player2?.name} ${arabicText.passes}`
           });
           
           // Check if both players are blocked
-          const humanBlocked = isPlayerBlocked(gameData.players.player1.tiles, board);
+          const humanBlocked = isPlayerBlocked(gameData.players?.player1?.tiles || [], board);
           if (humanBlocked) {
             // Game is deadlocked - determine winner by remaining pip count
-            const p1Points = gameData.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-            const p2Points = gameData.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+            const p1Points = (gameData.players?.player1?.tiles || []).reduce((sum, tile) => sum + tile.left + tile.right, 0);
+            const p2Points = (gameData.players?.player2?.tiles || []).reduce((sum, tile) => sum + tile.left + tile.right, 0);
             
             let winner, message;
             if (p1Points < p2Points) {
               winner = "player1";
-              message = `${gameData.players.player1.name} ${arabicText.winsLowPoints}`;
+              message = `${gameData.players?.player1?.name} ${arabicText.winsLowPoints}`;
             } else if (p2Points < p1Points) {
               winner = "player2";
-              message = `${gameData.players.player2.name} ${arabicText.winsLowPoints}`;
+              message = `${gameData.players?.player2?.name} ${arabicText.winsLowPoints}`;
             } else {
               winner = "tie";
               message = arabicText.gameTied;
@@ -348,7 +348,7 @@ const GameRoom = () => {
     }
 
     // Clone the player's tiles and remove the played tile
-    const updatedPlayerTiles = [...game.players[playerNumber].tiles];
+    const updatedPlayerTiles = [...(game.players?.[playerNumber]?.tiles || [])];
     updatedPlayerTiles.splice(selectedTile.index, 1);
 
     // Create the tile to be played with correct orientation
@@ -421,7 +421,7 @@ const GameRoom = () => {
 
     if (updatedPlayerTiles.length === 0) {
       winner = playerNumber;
-      message = `${game.players[playerNumber].name} ${arabicText.wins}`;
+      message = `${game.players?.[playerNumber]?.name} ${arabicText.wins}`;
     }
 
     try {
@@ -429,13 +429,42 @@ const GameRoom = () => {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
         [`gameState/board`]: updatedBoard,
         [`gameState/currentPlayerIndex`]: nextPlayerIndex,
-        [`gameState/message`]: `${game.players[playerNumber].name} ${arabicText.played}`
+        [`gameState/message`]: `${game.players?.[playerNumber]?.name} ${arabicText.played}`
       };
 
       if (winner) {
         updates[`gameState/winner`] = winner;
         updates[`gameState/status`] = "finished";
         updates[`gameState/message`] = message;
+      } else {
+        // Check if both players are blocked and boneyard is empty
+        const p1Blocked = isPlayerBlocked(
+          playerNumber === 'player1' ? updatedPlayerTiles : game.players.player1.tiles,
+          updatedBoard
+        );
+        const p2Blocked = isPlayerBlocked(
+          playerNumber === 'player2' ? updatedPlayerTiles : game.players.player2.tiles,
+          updatedBoard
+        );
+        const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
+        if (p1Blocked && p2Blocked && boneyardEmpty) {
+          const p1Points = (playerNumber === 'player1' ? updatedPlayerTiles : game.players.player1.tiles).reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          const p2Points = (playerNumber === 'player2' ? updatedPlayerTiles : game.players.player2.tiles).reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          let winnerBlocked, messageBlocked;
+          if (p1Points < p2Points) {
+            winnerBlocked = "player1";
+            messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+          } else if (p2Points < p1Points) {
+            winnerBlocked = "player2";
+            messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+          } else {
+            winnerBlocked = "tie";
+            messageBlocked = arabicText.gameTied;
+          }
+          updates[`gameState/winner`] = winnerBlocked;
+          updates[`gameState/status`] = "finished";
+          updates[`gameState/message`] = messageBlocked;
+        }
       }
 
       await update(ref(database, `games/${roomId}`), updates);
@@ -459,13 +488,38 @@ const GameRoom = () => {
       setGameMessage(arabicText.noTilesLeft);
       
       // If boneyard is empty and player can't play, skip turn
-      const canPlay = !isPlayerBlocked(game.players[playerNumber].tiles, game.gameState.board);
+      const canPlay = !isPlayerBlocked(game.players?.[playerNumber]?.tiles || [], game.gameState.board);
       if (!canPlay) {
         const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
-        await update(ref(database, `games/${roomId}/gameState`), {
-          currentPlayerIndex: nextPlayerIndex,
-          message: `${game.players[playerNumber].name} ${arabicText.hasNoPlayable}`
-        });
+        // Check if both players are blocked and boneyard is empty
+        const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
+        const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
+        const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
+        if (p1Blocked && p2Blocked && boneyardEmpty) {
+          const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          let winnerBlocked, messageBlocked;
+          if (p1Points < p2Points) {
+            winnerBlocked = "player1";
+            messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+          } else if (p2Points < p1Points) {
+            winnerBlocked = "player2";
+            messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+          } else {
+            winnerBlocked = "tie";
+            messageBlocked = arabicText.gameTied;
+          }
+          await update(ref(database, `games/${roomId}/gameState`), {
+            winner: winnerBlocked,
+            status: "finished",
+            message: messageBlocked
+          });
+        } else {
+          await update(ref(database, `games/${roomId}/gameState`), {
+            currentPlayerIndex: nextPlayerIndex,
+            message: `${game.players?.[playerNumber]?.name} ${arabicText.hasNoPlayable}`
+          });
+        }
       }
       return;
     }
@@ -473,15 +527,15 @@ const GameRoom = () => {
     // Draw a tile from the boneyard
     const drawnTile = game.gameState.boneyard[0];
     const updatedBoneyard = game.gameState.boneyard.slice(1);
-    const updatedPlayerTiles = [...game.players[playerNumber].tiles, drawnTile];
+    const updatedPlayerTiles = [...(game.players?.[playerNumber]?.tiles || []), drawnTile];
     // Check if the drawn tile can be played
     const { canPlay } = canPlayTile(drawnTile, game.gameState.board);
     const nextPlayerIndex = canPlay ? game.gameState.currentPlayerIndex : 
                          (game.gameState.currentPlayerIndex === 0 ? 1 : 0);
 
     const message = canPlay ? 
-      `${game.players[playerNumber].name} ${arabicText.canPlay}` :
-      `${game.players[playerNumber].name} ${arabicText.passes}`;
+      `${game.players?.[playerNumber]?.name} ${arabicText.canPlay}` :
+      `${game.players?.[playerNumber]?.name} ${arabicText.passes}`;
 
     try {
       await update(ref(database, `games/${roomId}`), {
@@ -530,6 +584,9 @@ const GameRoom = () => {
 
   return (
     <div className="game-room" dir="rtl">
+      <button onClick={() => navigate('/')} className="return-home-button arabic-text" style={{marginBottom: '10px'}}>
+        العودة إلى الصفحة الرئيسية
+      </button>
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="game-info">
         <p className="arabic-text">{arabicText.roomId}: {roomId}</p>
@@ -558,12 +615,12 @@ const GameRoom = () => {
         <div className="game-board">
           <div className="players-info">
             <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}>
-              <h3 className="arabic-text">{game.players.player1.name} {playerNumber === 'player1' ? arabicText.you : ''}</h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players.player1.tiles.length}</p>
+              <h3 className="arabic-text">{game.players?.player1?.name} {playerNumber === 'player1' ? arabicText.you : ''}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players?.player1?.tiles ? game.players.player1.tiles.length : 0}</p>
             </div>
             <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}>
-              <h3 className="arabic-text">{game.players.player2.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}</h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players.player2.tiles.length}</p>
+              <h3 className="arabic-text">{game.players?.player2?.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}</h3>
+              <p className="arabic-text">{arabicText.tiles}: {game.players?.player2?.tiles ? game.players.player2.tiles.length : 0}</p>
               {aiThinking && <div className="ai-thinking arabic-text">{arabicText.aiThinking}...</div>}
             </div>
           </div>
@@ -589,27 +646,35 @@ const GameRoom = () => {
             )}
           </div>
 
-          {!isFinished && playerNumber && game.players[playerNumber] && (
+          {!isFinished && playerNumber && game.players?.[playerNumber] && (
             <div className="player-controls">
               <div className="player-hand">
                 <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
-                  {game.players[playerNumber].tiles.map((tile, index) => (
-                    <div 
-                      key={`hand-${index}`} 
-                      className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
-                      onClick={() => handleTileSelect(tile, index)}
-                    >
-                      <div className="domino">
-                        <div className="domino-half">
-                          <DominoDots value={tile.left} />
-                        </div>
-                        <div className="domino-half">
-                          <DominoDots value={tile.right} />
+                  {(game.players?.[playerNumber]?.tiles || []).map((tile, index) => {
+                    let flipped = false;
+                    if (selectedTile && selectedTile.index === index) {
+                      const board = game.gameState.board || [];
+                      const { canPlay, needsFlip } = canPlayTile(tile, board);
+                      flipped = !!needsFlip;
+                    }
+                    return (
+                      <div
+                        key={`hand-${index}`}
+                        className={`hand-tile ${selectedTile && selectedTile.index === index ? 'selected' : ''}`}
+                        onClick={() => handleTileSelect(tile, index)}
+                      >
+                        <div className={`domino${flipped ? ' flipped' : ''}`}>
+                          <div className="domino-half">
+                            <DominoDots value={tile.left} />
+                          </div>
+                          <div className="domino-half">
+                            <DominoDots value={tile.right} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               
