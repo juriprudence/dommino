@@ -42,7 +42,14 @@ export const arabicText = {
   aiPlayerName: "الخصم الآلي",
   aiIndicator: "(ذكاء اصطناعي)",
   aiThinking: "يفكر",
-  aiModeActive: "وضع الذكاء الاصطناعي"
+  aiModeActive: "وضع الذكاء الاصطناعي",
+  
+  // Auto-restart and winner display translations
+  goesFirst: "يبدأ اللعبة",
+  playAgain: "العب مرة أخرى",
+  newGameStartingIn: "ستبدأ لعبة جديدة خلال",
+  seconds: "ثوان",
+  hasWon: "فاز"
 };
 
 // Utility Functions
@@ -175,7 +182,7 @@ export const firebaseConfig = {
   authDomain: "myproje-4a2e2.firebaseapp.com",
   databaseURL: "https://myproje-4a2e2.firebaseio.com",
   projectId: "myproje-4a2e2",
-  storageBucket: "myproje-4a2e2.appspot.com",
+  storageBucket: "myproje-4a2e2",
   messagingSenderId: "913698461417",
   appId: "1:913698461417:web:953647edfd328c14f7c278"
 };

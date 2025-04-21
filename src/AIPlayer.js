@@ -4,6 +4,7 @@ import { canPlayTile } from './util';
 class AIPlayer {
   constructor(difficulty = 'medium') {
     this.difficulty = difficulty; // 'easy', 'medium', 'hard'
+    this.lastGameState = null; // Track game state for learning
   }
 
   // Main function to determine AI's move
@@ -95,49 +96,77 @@ class AIPlayer {
     return { action: 'pass' };
   }
   
-  // Hard AI: uses strategy to maximize likelihood of winning
+  // Hard AI: uses advanced strategy to maximize likelihood of winning
   makeHardMove(tiles, board, boneyard) {
     // Count how many of each number are already on the board
     const numberCounts = this.countBoardNumbers(board);
+    const openEnds = this.getOpenEnds(board);
     
-    // First, try to play a tile that matches a common value on the board
-    // This increases chances that opponent will be blocked
-    let bestTileIndex = -1;
-    let bestPosition = null;
-    let bestScore = -1;
+    // Track playable tiles for decisions
+    const playableTiles = [];
     
+    // Analyze all playable tiles
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
       const { canPlay, position } = canPlayTile(tile, board);
       
       if (canPlay) {
-        // Score based on how common the values are and total pip count
-        // Higher score = better play
+        // Calculate various factors for strategy
         const leftCount = numberCounts[tile.left] || 0;
         const rightCount = numberCounts[tile.right] || 0;
         const isDouble = tile.left === tile.right;
         const pipCount = tile.left + tile.right;
         
-        // For hard difficulty, prioritize:
-        // 1. Getting rid of doubles (they're harder to play later)
-        // 2. Tiles with high pip counts (reduce points if we lose)
-        // 3. Values that are already common on the board (block opponent)
-        let score = pipCount + (leftCount + rightCount) * 2;
-        if (isDouble) score += 5; // Bonus for doubles
+        // Check if playing this tile would create a favorable board state
+        const willCreateEndValue = this.predictEndValue(tile, position, board, openEnds);
         
-        if (score > bestScore) {
-          bestScore = score;
-          bestTileIndex = i;
-          bestPosition = position;
+        // Check if we have other tiles with the same numbers (for strategic play)
+        const hasSimilarTiles = tiles.some((t, idx) => 
+          idx !== i && (t.left === tile.left || t.left === tile.right || 
+                        t.right === tile.left || t.right === tile.right)
+        );
+        
+        // Calculate a comprehensive score based on multiple factors
+        let score = pipCount;  // Base: higher pip count is better to get rid of
+        
+        // Strategic adjustments
+        if (isDouble) score += 8; // Prioritize doubles even more in hard mode
+        if (hasSimilarTiles) score -= 3; // Keep similar values for future plays
+        score += (leftCount + rightCount) * 2; // Common numbers block opponents
+        
+        // Favor moves that create ends with numbers we have more of
+        if (willCreateEndValue !== null) {
+          const endValueCount = tiles.filter(t => 
+            t.left === willCreateEndValue || t.right === willCreateEndValue
+          ).length;
+          score += endValueCount * 4;
         }
+        
+        // Penalize playing tiles that make ends with numbers 0 or 6 if we don't have more
+        if (willCreateEndValue === 0 || willCreateEndValue === 6) {
+          const endValueCount = tiles.filter(t => 
+            t.left === willCreateEndValue || t.right === willCreateEndValue
+          ).length;
+          if (endValueCount === 0) score -= 5;
+        }
+        
+        playableTiles.push({
+          tileIndex: i,
+          position,
+          score
+        });
       }
     }
     
-    if (bestTileIndex !== -1) {
+    // Sort by score (highest first)
+    playableTiles.sort((a, b) => b.score - a.score);
+    
+    // Play the highest scoring tile if any
+    if (playableTiles.length > 0) {
       return {
         action: 'play',
-        tileIndex: bestTileIndex,
-        position: bestPosition
+        tileIndex: playableTiles[0].tileIndex,
+        position: playableTiles[0].position
       };
     }
     
@@ -175,6 +204,40 @@ class AIPlayer {
     }
     
     return counts;
+  }
+  
+  // Get the open end values on the board
+  getOpenEnds(board) {
+    if (!board || board.length === 0) return [];
+    
+    // For a non-empty board, we have two open ends: left of first tile, right of last tile
+    return [board[0].left, board[board.length - 1].right];
+  }
+  
+  // Predict what end value would result from playing a tile
+  predictEndValue(tile, position, board, openEnds = null) {
+    if (!board || board.length === 0) return null;
+    if (!openEnds) openEnds = this.getOpenEnds(board);
+    
+    // If playing to the left end of the board
+    if (position === 'left') {
+      const leftEndValue = openEnds[0];
+      if (tile.right === leftEndValue) return tile.left;
+      if (tile.left === leftEndValue) return tile.right;
+    }
+    // If playing to the right end of the board
+    else if (position === 'right') {
+      const rightEndValue = openEnds[1];
+      if (tile.left === rightEndValue) return tile.right;
+      if (tile.right === rightEndValue) return tile.left;
+    }
+    
+    return null;
+  }
+  
+  // Update the AI with the last game state (for potential future learning)
+  updateGameState(gameState) {
+    this.lastGameState = gameState;
   }
 }
 
