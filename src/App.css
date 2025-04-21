@@ -961,3 +961,109 @@ h1 {
     padding: 15px;
   }
 }
+/* Logo Styles */
+.logo-container {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px; /* Add some space below the logo */
+}
+
+.game-logo {
+  max-width: 150px; /* Adjust size as needed */
+  height: auto; /* Maintain aspect ratio */
+  transition: transform 0.3s ease;
+}
+
+.game-logo:hover {
+  transform: scale(1.05); /* Slight zoom on hover */
+}
+
+/* Responsive adjustments for the logo */
+@media (max-width: 768px) {
+  .game-logo {
+    max-width: 120px;
+  }
+  h1 {
+    font-size: 2rem; /* Adjust heading size on smaller screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .game-logo {
+    max-width: 100px;
+  }
+  h1 {
+    font-size: 1.8rem;
+  }
+  .home-container {
+    padding: 10px;
+  }
+  .player-name-input {
+    padding: 12px;
+    font-size: 1rem;
+  }
+  .start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+}
+/* Responsive Logo in Game Room */
+.logo-in-button {
+  display: none; /* Hidden by default */
+  height: 20px; /* Adjust size as needed */
+  width: auto;
+  margin-left: 8px; /* Space between logo and text (RTL) */
+  vertical-align: middle; /* Align with button text */
+}
+
+.button-with-logo {
+  display: inline-flex; /* Use flexbox for alignment */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Small devices (e.g., phones, max-width 768px) */
+@media (max-width: 768px) {
+  .logo-container-large {
+    display: none; /* Hide the large logo container */
+  }
+
+  .logo-in-button {
+    display: inline-block; /* Show the logo inside the button */
+  }
+
+  .return-home-button.button-with-logo span {
+     /* Optional: Add margin if needed between text and logo */
+     /* margin-left: 5px; */
+  }
+}
+/* Further small device optimizations for Game Room */
+@media (max-width: 768px) {
+  .room-id-display {
+    display: none; /* Hide Room ID */
+  }
+
+  .player.active {
+    /* Make active player indicator less prominent */
+    border: 1px solid var(--primary-color); /* Thinner border */
+    box-shadow: 0 2px 5px rgba(168, 50, 50, 0.1); /* Smaller shadow */
+    transform: scale(1.01); /* Smaller scale */
+    padding: 10px; /* Slightly reduce padding */
+  }
+
+  .board-area {
+    min-height: 140px; /* Increase board height slightly */
+    padding: 5px 0; /* Adjust padding if needed */
+  }
+
+  .domino {
+    /* Optional: Slightly smaller dominos on small screens */
+    /* width: 60px; */
+    /* height: 30px; */
+  }
+  /* .domino.vertical { width: 30px; height: 60px; } */
+  /* .domino-half:first-child { border-right-width: 1px; } */
+  /* .domino.vertical .domino-half:first-child { border-bottom-width: 1px; } */
+  /* .dot { width: 4px; height: 4px; } */
+
+}

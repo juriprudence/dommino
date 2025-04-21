@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Import useEffect
 import { useNavigate } from 'react-router-dom';
 import { getDatabase, ref, set, push, update } from 'firebase/database';
 import { arabicText, generateDominoTiles, shuffleTiles } from './util';
@@ -12,6 +12,14 @@ const Home = () => {
   const [playMode, setPlayMode] = useState('multiplayer'); // 'multiplayer', 'ai', or 'anyone'
   const [aiDifficulty, setAiDifficulty] = useState('medium'); // 'easy', 'medium', 'hard'
   const database = getDatabase();
+
+  // Load player name from localStorage on component mount
+  useEffect(() => {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+      setPlayerName(savedName);
+    }
+  }, []); // Empty dependency array ensures this runs only once
 
   const handleStartGame = async () => {
     if (!playerName.trim()) {
@@ -63,7 +71,8 @@ const Home = () => {
           winner: null,
           message: "",
           gameMode: playMode,
-          aiDifficulty: playMode === 'ai' ? aiDifficulty : null
+          aiDifficulty: playMode === 'ai' ? aiDifficulty : null,
+          scores: { player1: 0, player2: 0 } // Initialize scores
         }
       };
 
@@ -157,7 +166,8 @@ const Home = () => {
           winner: null,
           message: '',
           gameMode: 'anyone',
-          aiDifficulty: null
+          aiDifficulty: null,
+          scores: { player1: 0, player2: 0 } // Initialize scores
         }
       };
       await set(newGameRef, gameData);
@@ -169,15 +179,8 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <div className="domino-logo">
-        <div className="logo-domino">
-          <div className="domino-half">
-            <DominoDots value={6} />
-          </div>
-          <div className="domino-half">
-            <DominoDots value={6} />
-          </div>
-        </div>
+      <div className="logo-container">
+        <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
       </div>
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="start-game-form">

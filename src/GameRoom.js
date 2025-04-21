@@ -66,7 +66,25 @@ const GameRoom = () => {
         playerNumber !== 'player1' && 
         !joinDialogOpen
       ) {
-        setJoinDialogOpen(true);
+        // Auto-join if playerName is saved
+        const savedName = localStorage.getItem('playerName');
+        if (savedName) {
+          setNewPlayerName(savedName);
+          (async () => {
+            await update(ref(database, `games/${roomId}/players/player2`), {
+              name: savedName,
+              connected: true
+            });
+            await update(ref(database, `games/${roomId}/gameState`), {
+              status: 'playing'
+            });
+            localStorage.setItem('playerNumber', 'player2');
+            setPlayerNumber('player2');
+            setJoinDialogOpen(false);
+          })();
+        } else {
+          setJoinDialogOpen(true);
+        }
       }
     }, (err) => {
       console.error("Firebase onValue error:", err);
@@ -87,6 +105,15 @@ const GameRoom = () => {
       }
     }
   }, [game && game.gameState && game.gameState.board && game.gameState.board.length]);
+
+  useEffect(() => {
+    // Save player wins to localStorage when game updates
+    if (game && playerNumber && game.players?.[playerNumber]?.name) {
+      const wins = game.players?.[playerNumber]?.score ?? 0;
+      localStorage.setItem('playerName', game.players[playerNumber].name);
+      localStorage.setItem('playerWins', wins);
+    }
+  }, [game, playerNumber]);
 
   const handleAIMove = async (gameData) => {
     if (aiThinking) return; // Prevent multiple AI moves at once
@@ -205,6 +232,9 @@ const GameRoom = () => {
             updates[`gameState/winner`] = winner;
             updates[`gameState/status`] = "finished";
             updates[`gameState/message`] = message;
+            // Increment winner's score
+            const currentScore = gameData.gameState.scores?.[winner] || 0;
+            updates[`gameState/scores/${winner}`] = currentScore + 1;
           }
           
           await update(ref(database, `games/${roomId}`), updates);
@@ -258,11 +288,17 @@ const GameRoom = () => {
               message = arabicText.gameTied;
             }
             
-            await update(ref(database, `games/${roomId}/gameState`), {
+            const deadlockUpdates = {
               winner: winner,
               status: "finished",
               message: message
-            });
+            };
+            // Increment winner's score if not a tie
+            if (winner !== "tie") {
+              const currentScore = gameData.gameState.scores?.[winner] || 0;
+              deadlockUpdates[`scores/${winner}`] = currentScore + 1;
+            }
+            await update(ref(database, `games/${roomId}/gameState`), deadlockUpdates);
           }
         }
       } catch (error) {
@@ -436,6 +472,9 @@ const GameRoom = () => {
         updates[`gameState/winner`] = winner;
         updates[`gameState/status`] = "finished";
         updates[`gameState/message`] = message;
+        // Increment winner's score
+        const currentScore = game.gameState.scores?.[winner] || 0;
+        updates[`gameState/scores/${winner}`] = currentScore + 1;
       } else {
         // Check if both players are blocked and boneyard is empty
         const p1Blocked = isPlayerBlocked(
@@ -464,6 +503,11 @@ const GameRoom = () => {
           updates[`gameState/winner`] = winnerBlocked;
           updates[`gameState/status`] = "finished";
           updates[`gameState/message`] = messageBlocked;
+          // Increment winner's score if not a tie
+          if (winnerBlocked !== "tie") {
+            const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
+            updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
+          }
         }
       }
 
@@ -584,12 +628,16 @@ const GameRoom = () => {
 
   return (
     <div className="game-room" dir="rtl">
-      <button onClick={() => navigate('/')} className="return-home-button arabic-text" style={{marginBottom: '10px'}}>
-        العودة إلى الصفحة الرئيسية
+      <button onClick={() => navigate('/')} className="return-home-button button-with-logo arabic-text" style={{marginBottom: '10px'}}>
+        <img src="/logo.png" alt="" className="logo-in-button" /> {/* Logo inside button */}
+        <span>العودة إلى الصفحة الرئيسية</span> {/* Wrap text in span */}
       </button>
+      <div className="logo-container logo-container-large"> {/* Added class */}
+        <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
+      </div>
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="game-info">
-        <p className="arabic-text">{arabicText.roomId}: {roomId}</p>
+        <p className="arabic-text room-id-display">{arabicText.roomId}: {roomId}</p> {/* Added class */}
         {!isAiMode && (
           <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
         )}
@@ -614,12 +662,18 @@ const GameRoom = () => {
       ) : (
         <div className="game-board">
           <div className="players-info">
-            <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}>
-              <h3 className="arabic-text">{game.players?.player1?.name} {playerNumber === 'player1' ? arabicText.you : ''}</h3>
+            <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}> 
+              <h3 className="arabic-text">
+                {game.players?.player1?.name} {playerNumber === 'player1' ? arabicText.you : ''}
+                <span className="score">{game.players?.player1?.name === localStorage.getItem('playerName') && ` | ${arabicText.wins}: ${localStorage.getItem('playerWins') || 0}`}</span>
+              </h3>
               <p className="arabic-text">{arabicText.tiles}: {game.players?.player1?.tiles ? game.players.player1.tiles.length : 0}</p>
             </div>
-            <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}>
-              <h3 className="arabic-text">{game.players?.player2?.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}</h3>
+            <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}> 
+              <h3 className="arabic-text">
+                {game.players?.player2?.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}
+                <span className="score">{game.players?.player2?.name === localStorage.getItem('playerName') && ` | ${arabicText.wins}: ${localStorage.getItem('playerWins') || 0}`}</span>
+              </h3>
               <p className="arabic-text">{arabicText.tiles}: {game.players?.player2?.tiles ? game.players.player2.tiles.length : 0}</p>
               {aiThinking && <div className="ai-thinking arabic-text">{arabicText.aiThinking}...</div>}
             </div>
