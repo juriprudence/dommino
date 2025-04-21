@@ -302,7 +302,7 @@ const GameRoom = () => {
   };
 
   const copyGameLink = () => {
-    const link = `https://juriprudence.github.io/dommino/#/room/${roomId}`;
+    const link = `https://elhabdomino.fun/#/room/${roomId}`;
     navigator.clipboard.writeText(link)
       .then(() => {
         alert('Game link copied to clipboard!');
@@ -608,7 +608,7 @@ const GameRoom = () => {
         <div className="waiting-screen">
           <h2 className="arabic-text">{arabicText.waiting}</h2>
           <p className="arabic-text">{arabicText.shareLink}</p>
-          <p className="game-link">https://juriprudence.github.io/dommino/#/room/{roomId}</p>
+          <p className="game-link">https://elhabdomino.fun/#/room/{roomId}</p>
           <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
         </div>
       ) : (
