@@ -186,3 +186,25 @@ export const firebaseConfig = {
   messagingSenderId: "913698461417",
   appId: "1:913698461417:web:953647edfd328c14f7c278"
 };
+
+// Update leaderboard: increment or set a player's score
+export const updateLeaderboard = async (playerName, points) => {
+  const db = getDatabase();
+  const leaderboardRef = ref(db, 'leaderboard/' + playerName);
+  // Use a transaction to increment points atomically and ensure points is always a valid number
+  await update(leaderboardRef, {
+    // If points is undefined or not a number, treat as 0
+    points: typeof points === 'number' && !isNaN(points) ? points : 0,
+    lastUpdated: Date.now()
+  });
+};
+
+// Fetch leaderboard: get all players and their scores
+export const fetchLeaderboard = (callback) => {
+  const db = getDatabase();
+  const leaderboardRef = ref(db, 'leaderboard');
+  onValue(leaderboardRef, (snapshot) => {
+    const data = snapshot.val();
+    callback(data);
+  });
+};

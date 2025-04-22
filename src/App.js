@@ -4,6 +4,8 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import Home from './Home';
 import GameRoom from './GameRoom';
+import Lobby from './Lobby';
+import BestPlayer from './BestPlayer';
 import { firebaseConfig } from './util';
 import './App.css';
 
@@ -31,6 +33,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/room/:roomId" element={<GameRoom />} />
+          <Route path="/lobby" element={<Lobby />} />
+          <Route path="/best-player" element={<BestPlayer />} />
         </Routes>
       </div>
     </Router>

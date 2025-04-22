@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; // Import useEffect
 import { useNavigate } from 'react-router-dom';
 import { getDatabase, ref, set, push, update } from 'firebase/database';
-import { arabicText, generateDominoTiles, shuffleTiles } from './util';
+import { arabicText, generateDominoTiles, shuffleTiles, fetchLeaderboard } from './util';
 import DominoDots from './DominoDots';
 
 // Home Component (Landing Page)
@@ -27,7 +27,49 @@ const Home = () => {
       return;
     }
     if (playMode === 'anyone') {
-      await handlePlayWithAnyone();
+      // Check if player is already player1 in a waiting game
+      const gamesRef = ref(database, 'games');
+      import('firebase/database').then(({ get }) => {
+        get(gamesRef).then(snapshot => {
+          let found = false;
+          let foundGameId = null;
+          let foundGameData = null;
+          if (snapshot.exists()) {
+            snapshot.forEach(childSnap => {
+              const val = childSnap.val();
+              const now = Date.now();
+              const created = val?.gameState?.timestamp || 0;
+              const lastActive = val?.gameState?.lastActive || created;
+              const thirtyMinutes = 30 * 60 * 1000;
+              const fiveMinutes = 5 * 60 * 1000;
+              if (
+                val &&
+                val.gameState &&
+                val.gameState.gameMode === 'anyone' &&
+                val.gameState.status === 'waiting' &&
+                now - created <= thirtyMinutes &&
+                now - lastActive <= fiveMinutes &&
+                val.players &&
+                val.players.player1 &&
+                val.players.player1.name === playerName
+              ) {
+                found = true;
+                foundGameId = childSnap.key;
+                foundGameData = val;
+                return true; // break
+              }
+            });
+          }
+          if (found && foundGameId && foundGameData) {
+            // Already player1 in a waiting game, just navigate
+            localStorage.setItem('playerName', playerName);
+            localStorage.setItem('playerNumber', 'player1');
+            navigate(`/room/${foundGameId}`);
+          } else {
+            handlePlayWithAnyone();
+          }
+        });
+      });
       return;
     }
 
@@ -91,7 +133,6 @@ const Home = () => {
     }
   };
 
-  // --- Matchmaking for "Play with Anyone" ---
   const handlePlayWithAnyone = async () => {
     if (!playerName.trim()) {
       setError('Please enter a name');
@@ -111,7 +152,19 @@ const Home = () => {
           if (snapshot.exists()) {
             snapshot.forEach(childSnap => {
               const val = childSnap.val();
-              if (val && val.gameState && val.gameState.gameMode === 'anyone' && val.gameState.status === 'waiting') {
+              const now = Date.now();
+              const created = val?.gameState?.timestamp || 0;
+              const lastActive = val?.gameState?.lastActive || created;
+              const thirtyMinutes = 30 * 60 * 1000;
+              const fiveMinutes = 5 * 60 * 1000;
+              if (
+                val &&
+                val.gameState &&
+                val.gameState.gameMode === 'anyone' &&
+                val.gameState.status === 'waiting' &&
+                now - created <= thirtyMinutes &&
+                now - lastActive <= fiveMinutes
+              ) {
                 found = true;
                 foundGameId = childSnap.key;
                 foundGameData = val;
@@ -123,6 +176,19 @@ const Home = () => {
         });
       });
     });
+
+    // Update lastActive timestamp every 30 seconds while waiting
+    if (!found) {
+      const interval = setInterval(() => {
+        if (playMode === 'anyone') {
+          const waitingGameRef = ref(database, `games/${localStorage.getItem('waitingGameId')}/gameState`);
+          update(waitingGameRef, { lastActive: Date.now() });
+        }
+      }, 30000);
+      // Save interval id to clear later if needed
+      localStorage.setItem('waitingIntervalId', interval);
+    }
+
     if (found && foundGameId && foundGameData) {
       // Join as player2
       await update(ref(database, `games/${foundGameId}/players/player2`), {
@@ -163,6 +229,7 @@ const Home = () => {
           board: [],
           boneyard: boneyard,
           timestamp: Date.now(),
+          lastActive: Date.now(),
           winner: null,
           message: '',
           gameMode: 'anyone',
@@ -173,6 +240,7 @@ const Home = () => {
       await set(newGameRef, gameData);
       localStorage.setItem('playerName', playerName);
       localStorage.setItem('playerNumber', 'player1');
+      localStorage.setItem('waitingGameId', gameId);
       navigate(`/room/${gameId}`);
     }
   };
@@ -263,6 +331,12 @@ const Home = () => {
         {error && <p className="error-message">{error}</p>}
         <button onClick={handleStartGame} className="start-game-button arabic-text">
           {arabicText.startGame}
+        </button>
+        <button onClick={() => navigate('/lobby')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
+          الذهاب إلى اللوبي
+        </button>
+        <button onClick={() => navigate('/best-player')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
+          أفضل لاعب
         </button>
       </div>
     </div>

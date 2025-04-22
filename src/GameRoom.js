@@ -1,10 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDatabase, ref, onValue, update } from 'firebase/database';
-import { arabicText, canPlayTile, isPlayerBlocked } from './util';
+import { getDatabase, ref, onValue, update, remove } from 'firebase/database';
+import { arabicText, canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard } from './util';
 import DominoDots from './DominoDots';
 import AIPlayer from './AIPlayer';
 import WinnerDisplay from './WinnerDisplay';
+import PlayerInfo from './PlayerInfo';
+
+// GameRoom.js - Main component for the game room
+// PlayerInfo.js - displays player info (name, score, tiles, AI indicator)
+// BoardArea.js - renders the domino board
+// PlayerHand.js - shows the current player's hand and handles tile selection
+// GameActions.js - contains play/draw buttons and their logic
+// JoinDialog.js - handles the join dialog for player2
+// WinnerDisplay.js - already exists for showing the winner
+
+// You can move each logical section into its own file/component, then import and use them in GameRoom.js.
+// Example (not full code):
+// import PlayerInfo from './PlayerInfo';
+// import BoardArea from './BoardArea';
+// import PlayerHand from './PlayerHand';
+// import GameActions from './GameActions';
+// import JoinDialog from './JoinDialog';
 
 // Game Room Component
 const GameRoom = () => {
@@ -19,6 +36,7 @@ const GameRoom = () => {
   const [selectedTile, setSelectedTile] = useState(null);
   const [gameMessage, setGameMessage] = useState('');
   const [aiThinking, setAiThinking] = useState(false);
+  const [leaderboard, setLeaderboard] = useState({});
   const boardAreaRef = useRef(null);
   const aiRef = useRef(null);
   const database = getDatabase();
@@ -92,6 +110,11 @@ const GameRoom = () => {
       setLoading(false);
     });
 
+    // Fetch leaderboard from Firebase
+    fetchLeaderboard((data) => {
+      setLeaderboard(data || {});
+    });
+
     // Clean up subscription on unmount
     return () => unsubscribe();
   }, [roomId, playerNumber, joinDialogOpen, database]);
@@ -107,13 +130,30 @@ const GameRoom = () => {
   }, [game && game.gameState && game.gameState.board && game.gameState.board.length]);
 
   useEffect(() => {
-    // Save player wins to localStorage when game updates
-    if (game && playerNumber && game.players?.[playerNumber]?.name) {
-      const wins = game.players?.[playerNumber]?.score ?? 0;
-      localStorage.setItem('playerName', game.players[playerNumber].name);
-      localStorage.setItem('playerWins', wins);
+    // Check if waiting for more than 30 minutes
+    if (game && game.gameState.status === 'waiting') {
+      const now = Date.now();
+      const created = game.gameState.timestamp || now;
+      const thirtyMinutes = 30 * 60 * 1000;
+      if (now - created > thirtyMinutes) {
+        setGameMessage('لقد انتظرت أكثر من 30 دقيقة. يرجى بدء طلب جديد للعثور على لاعب.');
+      }
     }
-  }, [game, playerNumber]);
+  }, [game]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (window.confirm('هل تريد حذف هذه الغرفة عند مغادرتها؟')) {
+        if (roomId) {
+          remove(ref(database, `games/${roomId}`));
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [roomId, database]);
 
   const handleAIMove = async (gameData) => {
     if (aiThinking) return; // Prevent multiple AI moves at once
@@ -235,6 +275,8 @@ const GameRoom = () => {
             // Increment winner's score
             const currentScore = gameData.gameState.scores?.[winner] || 0;
             updates[`gameState/scores/${winner}`] = currentScore + 1;
+            // Update leaderboard in Firebase
+            updateLeaderboard(gameData.players?.[winner]?.name);
           }
           
           await update(ref(database, `games/${roomId}`), updates);
@@ -297,6 +339,8 @@ const GameRoom = () => {
             if (winner !== "tie") {
               const currentScore = gameData.gameState.scores?.[winner] || 0;
               deadlockUpdates[`scores/${winner}`] = currentScore + 1;
+              // Update leaderboard in Firebase
+              updateLeaderboard(gameData.players?.[winner]?.name);
             }
             await update(ref(database, `games/${roomId}/gameState`), deadlockUpdates);
           }
@@ -475,6 +519,8 @@ const GameRoom = () => {
         // Increment winner's score
         const currentScore = game.gameState.scores?.[winner] || 0;
         updates[`gameState/scores/${winner}`] = currentScore + 1;
+        // Update leaderboard in Firebase
+        updateLeaderboard(game.players?.[winner]?.name);
       } else {
         // Check if both players are blocked and boneyard is empty
         const p1Blocked = isPlayerBlocked(
@@ -507,6 +553,8 @@ const GameRoom = () => {
           if (winnerBlocked !== "tie") {
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
+            // Update leaderboard in Firebase
+            updateLeaderboard(game.players?.[winnerBlocked]?.name);
           }
         }
       }
@@ -662,21 +710,26 @@ const GameRoom = () => {
       ) : (
         <div className="game-board">
           <div className="players-info">
-            <div className={`player ${game.gameState.currentPlayerIndex === 0 ? 'active' : ''}`}> 
-              <h3 className="arabic-text">
-                {game.players?.player1?.name} {playerNumber === 'player1' ? arabicText.you : ''}
-                <span className="score">{game.players?.player1?.name === localStorage.getItem('playerName') && ` | ${arabicText.wins}: ${localStorage.getItem('playerWins') || 0}`}</span>
-              </h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players?.player1?.tiles ? game.players.player1.tiles.length : 0}</p>
-            </div>
-            <div className={`player ${game.gameState.currentPlayerIndex === 1 ? 'active' : ''}`}> 
-              <h3 className="arabic-text">
-                {game.players?.player2?.name} {playerNumber === 'player2' ? arabicText.you : ''} {isAiMode && <span className="ai-indicator">{arabicText.aiIndicator}</span>}
-                <span className="score">{game.players?.player2?.name === localStorage.getItem('playerName') && ` | ${arabicText.wins}: ${localStorage.getItem('playerWins') || 0}`}</span>
-              </h3>
-              <p className="arabic-text">{arabicText.tiles}: {game.players?.player2?.tiles ? game.players.player2.tiles.length : 0}</p>
-              {aiThinking && <div className="ai-thinking arabic-text">{arabicText.aiThinking}...</div>}
-            </div>
+            <PlayerInfo
+              player={{
+                ...game.players?.player1,
+                leaderboardPoints: leaderboard?.[game.players?.player1?.name]?.points || 0
+              }}
+              isActive={game.gameState.currentPlayerIndex === 0}
+              isYou={playerNumber === 'player1'}
+              isAi={false}
+              aiThinking={false}
+            />
+            <PlayerInfo
+              player={{
+                ...game.players?.player2,
+                leaderboardPoints: leaderboard?.[game.players?.player2?.name]?.points || 0
+              }}
+              isActive={game.gameState.currentPlayerIndex === 1}
+              isYou={playerNumber === 'player2'}
+              isAi={isAiMode}
+              aiThinking={aiThinking}
+            />
           </div>
 
           <div className="board-area" ref={boardAreaRef}>
