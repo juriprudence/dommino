@@ -156,6 +156,37 @@ const GameRoom = () => {
     };
   }, [roomId, database]);
 
+  useEffect(() => {
+    // Check for deadlock (no one can play and boneyard is empty)
+    if (game && !game.gameState.winner && game.gameState.status !== 'waiting' && game.gameState.status !== 'finished') {
+      const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
+      const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
+      const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
+      if (p1Blocked && p2Blocked && boneyardEmpty) {
+        // Calculate points
+        const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        let winnerBlocked, messageBlocked;
+        if (p1Points < p2Points) {
+          winnerBlocked = "player1";
+          messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+        } else if (p2Points < p1Points) {
+          winnerBlocked = "player2";
+          messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+        } else {
+          winnerBlocked = "tie";
+          messageBlocked = arabicText.gameTied;
+        }
+        // Only update if not already set
+        update(ref(database, `games/${roomId}/gameState`), {
+          winner: winnerBlocked,
+          status: "finished",
+          message: messageBlocked
+        });
+      }
+    }
+  }, [game, database, roomId]);
+
   const handleAIMove = async (gameData) => {
     if (aiThinking) return; // Prevent multiple AI moves at once
     
