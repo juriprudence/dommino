@@ -72,62 +72,59 @@ export const shuffleTiles = (tiles) => {
   return shuffled;
 };
 
-// Check if a tile can be played on the board
+// Check if a tile can be played on the board, returns an array of possible plays
 export const canPlayTile = (tile, board) => {
+  const possiblePlays = [];
+  const isDouble = tile.left === tile.right;
+  const orientation = isDouble ? "vertical" : "horizontal";
+
   // If board is empty, any tile can be played
   if (!board || board.length === 0) {
-    return { canPlay: true, position: "first", needsFlip: false, orientation: "horizontal" };
+    possiblePlays.push({ position: "first", needsFlip: false, orientation: orientation });
+    return possiblePlays;
   }
 
   // Get the values at the ends of the board
   const leftEndTile = board[0];
   const rightEndTile = board[board.length - 1];
-
-  // The value to match on the left and right
   const boardLeftValue = leftEndTile.left;
   const boardRightValue = rightEndTile.right;
 
   // Check if the tile can be played on the left
   if (tile.right === boardLeftValue) {
     // No flip needed, right of tile matches left of board
-    return {
-      canPlay: true,
+    possiblePlays.push({
       position: "left",
       needsFlip: false,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
-  }
-  if (tile.left === boardLeftValue) {
+      orientation: orientation
+    });
+  } else if (tile.left === boardLeftValue) { // Use else if to avoid adding duplicate left plays for doubles
     // Flip needed, left of tile matches left of board
-    return {
-      canPlay: true,
+    possiblePlays.push({
       position: "left",
       needsFlip: true,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
+      orientation: orientation
+    });
   }
 
   // Check if the tile can be played on the right
   if (tile.left === boardRightValue) {
     // No flip needed, left of tile matches right of board
-    return {
-      canPlay: true,
+    possiblePlays.push({
       position: "right",
       needsFlip: false,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
-  }
-  if (tile.right === boardRightValue) {
+      orientation: orientation
+    });
+  } else if (tile.right === boardRightValue) { // Use else if to avoid adding duplicate right plays for doubles
     // Flip needed, right of tile matches right of board
-    return {
-      canPlay: true,
+    possiblePlays.push({
       position: "right",
       needsFlip: true,
-      orientation: tile.left === tile.right ? "vertical" : "horizontal"
-    };
+      orientation: orientation
+    });
   }
 
-  return { canPlay: false };
+  return possiblePlays; // Return array of possible plays (empty if none)
 };
 
 // Check for a game winner

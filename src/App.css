@@ -329,6 +329,8 @@ h1 {
 }
 
 .domino.vertical .domino-half {
+  width: 100%; /* Ensure half takes full width in vertical layout */
+  height: 50%; /* Explicitly set height for vertical halves */
   padding: 4px 0; /* Add vertical padding for vertical dominoes */
 }
 

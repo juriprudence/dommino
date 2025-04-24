@@ -23,13 +23,14 @@ class AIPlayer {
     // Try to play any valid tile
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
-      const { canPlay, position } = canPlayTile(tile, board);
-      
-      if (canPlay) {
+      const possiblePlays = canPlayTile(tile, board); // Get array of plays
+
+      if (possiblePlays.length > 0) {
+        // Easy AI just picks the first possible play
         return {
           action: 'play',
           tileIndex: i,
-          position: position
+          position: possiblePlays[0].position // Use position from the first play
         };
       }
     }
@@ -50,14 +51,14 @@ class AIPlayer {
     
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
-      const { canPlay, position } = canPlayTile(tile, board);
-      
-      // If it's a double and can be played, play it
-      if (canPlay && tile.left === tile.right) {
+      const possiblePlays = canPlayTile(tile, board); // Get array of plays
+
+      // If it's a double and can be played, play it (using the first possible position)
+      if (possiblePlays.length > 0 && tile.left === tile.right) {
         return {
           action: 'play',
           tileIndex: i,
-          position: position
+          position: possiblePlays[0].position // Use first position
         };
       }
     }
@@ -69,13 +70,13 @@ class AIPlayer {
     
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
-      const { canPlay, position } = canPlayTile(tile, board);
+      const possiblePlays = canPlayTile(tile, board); // Get array of plays
       const tileValue = tile.left + tile.right;
-      
-      if (canPlay && tileValue > highestValue) {
+
+      if (possiblePlays.length > 0 && tileValue > highestValue) {
         highestValue = tileValue;
         bestTileIndex = i;
-        bestPosition = position;
+        bestPosition = possiblePlays[0].position; // Use first position if multiple
       }
     }
     
@@ -103,70 +104,70 @@ class AIPlayer {
     const openEnds = this.getOpenEnds(board);
     
     // Track playable tiles for decisions
-    const playableTiles = [];
-    
-    // Analyze all playable tiles
+    const potentialMoves = []; // Store potential moves with scores
+
+    // Analyze all playable tiles and their possible positions
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
-      const { canPlay, position } = canPlayTile(tile, board);
-      
-      if (canPlay) {
-        // Calculate various factors for strategy
-        const leftCount = numberCounts[tile.left] || 0;
-        const rightCount = numberCounts[tile.right] || 0;
+      const possiblePlays = canPlayTile(tile, board); // Get array of plays
+
+      if (possiblePlays.length > 0) {
         const isDouble = tile.left === tile.right;
         const pipCount = tile.left + tile.right;
-        
-        // Check if playing this tile would create a favorable board state
-        const willCreateEndValue = this.predictEndValue(tile, position, board, openEnds);
-        
-        // Check if we have other tiles with the same numbers (for strategic play)
-        const hasSimilarTiles = tiles.some((t, idx) => 
-          idx !== i && (t.left === tile.left || t.left === tile.right || 
+        const leftCount = numberCounts[tile.left] || 0;
+        const rightCount = numberCounts[tile.right] || 0;
+        const hasSimilarTiles = tiles.some((t, idx) =>
+          idx !== i && (t.left === tile.left || t.left === tile.right ||
                         t.right === tile.left || t.right === tile.right)
         );
-        
-        // Calculate a comprehensive score based on multiple factors
-        let score = pipCount;  // Base: higher pip count is better to get rid of
-        
-        // Strategic adjustments
-        if (isDouble) score += 8; // Prioritize doubles even more in hard mode
-        if (hasSimilarTiles) score -= 3; // Keep similar values for future plays
-        score += (leftCount + rightCount) * 2; // Common numbers block opponents
-        
-        // Favor moves that create ends with numbers we have more of
-        if (willCreateEndValue !== null) {
-          const endValueCount = tiles.filter(t => 
-            t.left === willCreateEndValue || t.right === willCreateEndValue
-          ).length;
-          score += endValueCount * 4;
+
+        // Evaluate score for each possible position
+        for (const play of possiblePlays) {
+          const position = play.position;
+          const willCreateEndValue = this.predictEndValue(tile, position, board, openEnds);
+
+          // Calculate a comprehensive score based on multiple factors
+          let score = pipCount; // Base: higher pip count is better to get rid of
+
+          // Strategic adjustments
+          if (isDouble) score += 8; // Prioritize doubles even more in hard mode
+          if (hasSimilarTiles) score -= 3; // Keep similar values for future plays
+          score += (leftCount + rightCount) * 2; // Common numbers block opponents
+
+          // Favor moves that create ends with numbers we have more of
+          if (willCreateEndValue !== null) {
+            const endValueCount = tiles.filter(t =>
+              t.left === willCreateEndValue || t.right === willCreateEndValue
+            ).length;
+            score += endValueCount * 4;
+          }
+
+          // Penalize playing tiles that make ends with numbers 0 or 6 if we don't have more
+          if (willCreateEndValue === 0 || willCreateEndValue === 6) {
+            const endValueCount = tiles.filter(t =>
+              t.left === willCreateEndValue || t.right === willCreateEndValue
+            ).length;
+            if (endValueCount === 0) score -= 5;
+          }
+
+          potentialMoves.push({
+            tileIndex: i,
+            position: position, // Store the specific position
+            score
+          });
         }
-        
-        // Penalize playing tiles that make ends with numbers 0 or 6 if we don't have more
-        if (willCreateEndValue === 0 || willCreateEndValue === 6) {
-          const endValueCount = tiles.filter(t => 
-            t.left === willCreateEndValue || t.right === willCreateEndValue
-          ).length;
-          if (endValueCount === 0) score -= 5;
-        }
-        
-        playableTiles.push({
-          tileIndex: i,
-          position,
-          score
-        });
       }
     }
     
-    // Sort by score (highest first)
-    playableTiles.sort((a, b) => b.score - a.score);
-    
-    // Play the highest scoring tile if any
-    if (playableTiles.length > 0) {
+    // Sort potential moves by score (highest first)
+    potentialMoves.sort((a, b) => b.score - a.score);
+
+    // Play the highest scoring move if any
+    if (potentialMoves.length > 0) {
       return {
         action: 'play',
-        tileIndex: playableTiles[0].tileIndex,
-        position: playableTiles[0].position
+        tileIndex: potentialMoves[0].tileIndex,
+        position: potentialMoves[0].position // Use position from the best move
       };
     }
     

@@ -34,6 +34,7 @@ const GameRoom = () => {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedTile, setSelectedTile] = useState(null);
+  const [directionChoice, setDirectionChoice] = useState(null); // State for direction choice
   const [gameMessage, setGameMessage] = useState('');
   const [aiThinking, setAiThinking] = useState(false);
   const [leaderboard, setLeaderboard] = useState({});
@@ -412,98 +413,30 @@ const GameRoom = () => {
     setSelectedTile({ ...tile, index });
   };
 
-  const handlePlayTile = async () => {
-    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
-    if (playerNumber !== currentPlayerNumber) {
-      setGameMessage(arabicText.notYourTurn);
-      return;
-    }
-
-    const board = game.gameState.board || [];
-    const { canPlay, position, needsFlip } = canPlayTile(selectedTile, board);
-
-    if (!canPlay) {
-      setGameMessage(arabicText.cantPlay);
-      return;
-    }
-
-    // Clone the player's tiles and remove the played tile
+  const executePlay = async (chosenPlay) => {
+    const { position, needsFlip, orientation } = chosenPlay;
     const updatedPlayerTiles = [...(game.players?.[playerNumber]?.tiles || [])];
     updatedPlayerTiles.splice(selectedTile.index, 1);
-
-    // Create the tile to be played with correct orientation
-    const isDouble = selectedTile.left === selectedTile.right;
-    const tileOrientation = isDouble ? "vertical" : "horizontal";
-
-    let playedTile;
-    if (position === "first") {
-      playedTile = {
-        left: selectedTile.left,
-        right: selectedTile.right,
-        id: selectedTile.id,
-        orientation: tileOrientation,
-        flipped: false
-      };
-    } else if (position === "left") {
-      // The right value of the new tile must match the left value of the board
-      const boardLeftValue = board[0].left;
-      if (selectedTile.right === boardLeftValue) {
-        playedTile = {
-          left: selectedTile.left,
-          right: selectedTile.right,
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: false
-        };
-      } else {
-        playedTile = {
-          left: selectedTile.right,
-          right: selectedTile.left,
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: true
-        };
-      }
-    } else { // position === "right"
-      // The left value of the new tile must match the right value of the board
-      const boardRightValue = board[board.length - 1].right;
-      if (selectedTile.left === boardRightValue) {
-        playedTile = {
-          left: selectedTile.left,
-          right: selectedTile.right,
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: false
-        };
-      } else {
-        playedTile = {
-          left: selectedTile.right,
-          right: selectedTile.left,
-          id: selectedTile.id,
-          orientation: tileOrientation,
-          flipped: true
-        };
-      }
-    }
-
-    // Update the board
-    let updatedBoard = [...board];
+    let playedTile = {
+      left: needsFlip ? selectedTile.right : selectedTile.left,
+      right: needsFlip ? selectedTile.left : selectedTile.right,
+      id: selectedTile.id,
+      orientation: orientation,
+      flipped: needsFlip
+    };
+    let updatedBoard = [...(game.gameState.board || [])];
     if (position === "first" || position === "left") {
       updatedBoard.unshift(playedTile);
     } else {
       updatedBoard.push(playedTile);
     }
-
-    // Check for winner and update game state
     const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
     let winner = null;
     let message = "";
-
     if (updatedPlayerTiles.length === 0) {
       winner = playerNumber;
       message = `${game.players?.[playerNumber]?.name} ${arabicText.wins}`;
     }
-
     try {
       const updates = {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
@@ -511,18 +444,14 @@ const GameRoom = () => {
         [`gameState/currentPlayerIndex`]: nextPlayerIndex,
         [`gameState/message`]: `${game.players?.[playerNumber]?.name} ${arabicText.played}`
       };
-
       if (winner) {
         updates[`gameState/winner`] = winner;
         updates[`gameState/status`] = "finished";
         updates[`gameState/message`] = message;
-        // Increment winner's score
         const currentScore = game.gameState.scores?.[winner] || 0;
         updates[`gameState/scores/${winner}`] = currentScore + 1;
-        // Update leaderboard in Firebase
         updateLeaderboard(game.players?.[winner]?.name);
       } else {
-        // Check if both players are blocked and boneyard is empty
         const p1Blocked = isPlayerBlocked(
           playerNumber === 'player1' ? updatedPlayerTiles : game.players.player1.tiles,
           updatedBoard
@@ -549,22 +478,52 @@ const GameRoom = () => {
           updates[`gameState/winner`] = winnerBlocked;
           updates[`gameState/status`] = "finished";
           updates[`gameState/message`] = messageBlocked;
-          // Increment winner's score if not a tie
           if (winnerBlocked !== "tie") {
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
-            // Update leaderboard in Firebase
             updateLeaderboard(game.players?.[winnerBlocked]?.name);
           }
         }
       }
-
       await update(ref(database, `games/${roomId}`), updates);
       setSelectedTile(null);
+      setDirectionChoice(null);
     } catch (error) {
       console.error("Error updating game:", error);
       setError("Failed to play tile");
     }
+  };
+
+  const handleDirectionChoice = (position) => {
+    if (!selectedTile || !game) return;
+    const board = game.gameState.board || [];
+    const possiblePlays = canPlayTile(selectedTile, board);
+    const chosenPlay = possiblePlays.find(play => play.position === position);
+    if (chosenPlay) {
+      executePlay(chosenPlay);
+    } else {
+      setGameMessage("اختيار غير صالح.");
+      setDirectionChoice(null);
+    }
+  };
+
+  const handlePlayTile = async () => {
+    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    if (playerNumber !== currentPlayerNumber) {
+      setGameMessage(arabicText.notYourTurn);
+      return;
+    }
+    const board = game.gameState.board || [];
+    const possiblePlays = canPlayTile(selectedTile, board);
+    if (possiblePlays.length === 0) {
+      setGameMessage(arabicText.cantPlay);
+      return;
+    }
+    if (possiblePlays.length > 1) {
+      setDirectionChoice({ left: true, right: true });
+      return;
+    }
+    executePlay(possiblePlays[0]);
   };
 
   const handleDrawTile = async () => {
@@ -755,6 +714,12 @@ const GameRoom = () => {
 
           {!isFinished && playerNumber && game.players?.[playerNumber] && (
             <div className="player-controls">
+              {directionChoice && (
+                <div className="direction-choice-buttons" style={{ textAlign: 'center', margin: '10px 0' }}>
+                  <button className="play-button arabic-text" style={{marginLeft: '10px'}} onClick={() => handleDirectionChoice('right')}>اليمين</button>
+                  <button className="play-button arabic-text" onClick={() => handleDirectionChoice('left')}>اليسار</button>
+                </div>
+              )}
               <div className="player-hand">
                 <h3 className="arabic-text">{arabicText.yourTiles}</h3>
                 <div className="tiles">
