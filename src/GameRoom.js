@@ -703,7 +703,7 @@ const GameRoom = () => {
             <PlayerInfo
               player={{
                 ...game.players?.player1,
-                leaderboardPoints: leaderboard?.[game.players?.player1?.name]?.points || 0
+                winCount: game.gameState.scores?.player1 || 0
               }}
               isActive={game.gameState.currentPlayerIndex === 0}
               isYou={playerNumber === 'player1'}
@@ -713,7 +713,7 @@ const GameRoom = () => {
             <PlayerInfo
               player={{
                 ...game.players?.player2,
-                leaderboardPoints: leaderboard?.[game.players?.player2?.name]?.points || 0
+                winCount: game.gameState.scores?.player2 || 0
               }}
               isActive={game.gameState.currentPlayerIndex === 1}
               isYou={playerNumber === 'player2'}
