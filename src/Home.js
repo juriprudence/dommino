@@ -334,15 +334,20 @@ const Home = ({ user, coins }) => {
               <div className="bet-input-container arabic-text" style={{ margin: '0 0 12px 0', padding: '6px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <label htmlFor="betAmount" style={{ fontWeight: 'bold', minWidth: '110px' }}>ضع رهان (عملات): </label>
                 <input
-                  type="number"
+                  type="range"
                   id="betAmount"
                   value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
+                  onChange={(e) => setBetAmount(Number(e.target.value))}
                   min="0"
+                  max={coins}
                   step="1"
-                  placeholder="0"
-                  style={{ width: '70px', borderRadius: '4px', border: '1px solid #ccc', padding: '2px 6px' }}
+                  style={{ flex: 1, accentColor: 'var(--primary-color)', direction: 'ltr' }}
+                  aria-valuenow={betAmount}
+                  aria-valuemin={0}
+                  aria-valuemax={coins}
+                  aria-label="Bet amount slider"
                 />
+                <span style={{ minWidth: '40px', textAlign: 'center', fontWeight: 'bold', color: 'var(--primary-color)' }}>{betAmount}</span>
               </div>
             )}
             <label>
