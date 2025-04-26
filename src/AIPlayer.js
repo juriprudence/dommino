@@ -1,5 +1,5 @@
 // AI Player implementation for Domino game
-import { canPlayTile } from './util';
+import { canPlayTile } from './Util'; // Corrected casing
 
 class AIPlayer {
   constructor(difficulty = 'medium') {

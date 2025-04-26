@@ -1,0 +1,76 @@
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f0f0f0; /* Light grey background */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.login-form {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Spacing between form elements */
+  width: 100%;
+  max-width: 400px; /* Limit form width */
+  margin-bottom: 20px; /* Space below the form */
+}
+
+.login-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-group input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.login-button,
+.guest-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-button {
+  background-color: #007bff; /* Blue */
+  color: white;
+}
+
+.login-button:hover {
+  background-color: #0056b3; /* Darker blue */
+}
+
+.guest-button {
+  background-color: #6c757d; /* Grey */
+  color: white;
+  width: 100%;
+  max-width: 400px; /* Match form width */
+}
+
+.guest-button:hover {
+  background-color: #5a6268; /* Darker grey */
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDatabase, ref, onValue, update, remove } from 'firebase/database';
-import { arabicText, canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard } from './util';
+import { ref, onValue, update, remove } from 'firebase/database'; // Removed getDatabase
+import { arabicText, canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, addUserCoins, transferBetCoins, setUserCoins, getUserCoins, db } from './Util'; // Corrected casing, added db
 import DominoDots from './DominoDots';
 import AIPlayer from './AIPlayer';
 import WinnerDisplay from './WinnerDisplay';
@@ -24,13 +24,14 @@ import PlayerInfo from './PlayerInfo';
 // import JoinDialog from './JoinDialog';
 
 // Game Room Component
-const GameRoom = () => {
+// Accept user and coins as props
+const GameRoom = ({ user, coins }) => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [playerNumber, setPlayerNumber] = useState(localStorage.getItem('playerNumber') || '');
+  const [playerNumber, setPlayerNumber] = useState(''); // No localStorage
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedTile, setSelectedTile] = useState(null);
@@ -40,12 +41,12 @@ const GameRoom = () => {
   const [leaderboard, setLeaderboard] = useState({});
   const boardAreaRef = useRef(null);
   const aiRef = useRef(null);
-  const database = getDatabase();
+  // const database = getDatabase(); // Use imported db instance
 
   useEffect(() => {
     console.log("Loading room:", roomId);
-    const gameRef = ref(database, `games/${roomId}`);
-    
+    const gameRef = ref(db, `games/${roomId}`); // Use imported db
+
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       console.log("Game data:", data);
@@ -55,12 +56,31 @@ const GameRoom = () => {
         setLoading(false);
         return;
       }
-      
       setGame(data);
-      if (data.gameState.message) {
-        setGameMessage(data.gameState.message);
-      }
+      if (data.gameState.message) setGameMessage(data.gameState.message);
       setLoading(false);
+
+      // Assign playerNumber based on uid from Firebase
+      if (user && user.uid) {
+        if (data.players.player1 && data.players.player1.uid === user.uid) {
+          setPlayerNumber('player1');
+        } else if (data.players.player2 && data.players.player2.uid === user.uid) {
+          setPlayerNumber('player2');
+        } else if (data.players.player2 && !data.players.player2.connected) {
+          // Auto-join as player2 if spot is open
+          (async () => {
+            await update(ref(db, `games/${roomId}/players/player2`), {
+              name: user.displayName || '',
+              uid: user.uid,
+              connected: true
+            });
+            await update(ref(db, `games/${roomId}/gameState`), {
+              status: 'playing'
+            });
+            setPlayerNumber('player2');
+          })();
+        }
+      }
 
       // Create AI player instance if not already created
       if (data.gameState.gameMode === 'ai' && !aiRef.current) {
@@ -76,50 +96,22 @@ const GameRoom = () => {
       ) {
         handleAIMove(data);
       }
-
-      // Check if player2 spot is open and you're not already player1
-      if (
-        data.gameState.gameMode !== 'ai' && 
-        data.players.player2 && 
-        !data.players.player2.connected && 
-        playerNumber !== 'player1' && 
-        !joinDialogOpen
-      ) {
-        // Auto-join if playerName is saved
-        const savedName = localStorage.getItem('playerName');
-        if (savedName) {
-          setNewPlayerName(savedName);
-          (async () => {
-            await update(ref(database, `games/${roomId}/players/player2`), {
-              name: savedName,
-              connected: true
-            });
-            await update(ref(database, `games/${roomId}/gameState`), {
-              status: 'playing'
-            });
-            localStorage.setItem('playerNumber', 'player2');
-            setPlayerNumber('player2');
-            setJoinDialogOpen(false);
-          })();
-        } else {
-          setJoinDialogOpen(true);
-        }
-      }
     }, (err) => {
       console.error("Firebase onValue error:", err);
       setError('Error loading game: ' + err.message);
       setLoading(false);
     });
-
+    
     // Fetch leaderboard from Firebase
+    // fetchLeaderboard is imported from Util, which should use the initialized db instance
     fetchLeaderboard((data) => {
       setLeaderboard(data || {});
     });
-
+    
     // Clean up subscription on unmount
     return () => unsubscribe();
-  }, [roomId, playerNumber, joinDialogOpen, database]);
-
+  }, [roomId, user]);
+  
   useEffect(() => {
     // Auto-scroll board on small devices when board changes
     if (game && game.gameState && game.gameState.board && boardAreaRef.current) {
@@ -144,9 +136,12 @@ const GameRoom = () => {
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
+      // Consider if automatically removing the game is the desired behavior.
+      // Maybe just mark the player as disconnected instead?
+      // For now, keeping the remove logic but using the imported db.
       if (window.confirm('هل تريد حذف هذه الغرفة عند مغادرتها؟')) {
         if (roomId) {
-          remove(ref(database, `games/${roomId}`));
+          remove(ref(db, `games/${roomId}`)); // Use imported db
         }
       }
     };
@@ -154,7 +149,7 @@ const GameRoom = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [roomId, database]);
+  }, [roomId]); // Removed database from dependency array
 
   useEffect(() => {
     // Check for deadlock (no one can play and boneyard is empty)
@@ -178,14 +173,14 @@ const GameRoom = () => {
           messageBlocked = arabicText.gameTied;
         }
         // Only update if not already set
-        update(ref(database, `games/${roomId}/gameState`), {
+        update(ref(db, `games/${roomId}/gameState`), { // Use imported db
           winner: winnerBlocked,
           status: "finished",
           message: messageBlocked
         });
       }
     }
-  }, [game, database, roomId]);
+  }, [game, roomId]); // Removed database from dependency array
 
   const handleAIMove = async (gameData) => {
     if (aiThinking) return; // Prevent multiple AI moves at once
@@ -310,9 +305,9 @@ const GameRoom = () => {
             // Update leaderboard in Firebase
             updateLeaderboard(gameData.players?.[winner]?.name);
           }
-          
-          await update(ref(database, `games/${roomId}`), updates);
-          
+
+          await update(ref(db, `games/${roomId}`), updates); // Use imported db
+
         } else if (aiMove.action === 'draw') {
           // AI wants to draw a tile
           const drawnTile = boneyard[0];
@@ -326,23 +321,23 @@ const GameRoom = () => {
           const message = canPlay ? 
             `${gameData.players?.player2?.name} ${arabicText.canPlay}` :
             `${gameData.players?.player2?.name} ${arabicText.passes}`;
-          
-          await update(ref(database, `games/${roomId}`), {
+
+          await update(ref(db, `games/${roomId}`), { // Use imported db
             [`players/player2/tiles`]: updatedAiTiles,
             [`gameState/boneyard`]: updatedBoneyard,
             [`gameState/currentPlayerIndex`]: nextPlayerIndex,
             [`gameState/message`]: message
           });
-          
+
           // If AI can play the drawn tile, it will make another move on the next game update
-          
+
         } else {
           // AI passes
-          await update(ref(database, `games/${roomId}/gameState`), {
+          await update(ref(db, `games/${roomId}/gameState`), { // Use imported db
             currentPlayerIndex: 0, // Back to human player
             message: `${gameData.players?.player2?.name} ${arabicText.passes}`
           });
-          
+
           // Check if both players are blocked
           const humanBlocked = isPlayerBlocked(gameData.players?.player1?.tiles || [], board);
           if (humanBlocked) {
@@ -374,7 +369,7 @@ const GameRoom = () => {
               // Update leaderboard in Firebase
               updateLeaderboard(gameData.players?.[winner]?.name);
             }
-            await update(ref(database, `games/${roomId}/gameState`), deadlockUpdates);
+            await update(ref(db, `games/${roomId}/gameState`), deadlockUpdates); // Use imported db
           }
         }
       } catch (error) {
@@ -385,26 +380,28 @@ const GameRoom = () => {
     }, 1500); // 1.5 second delay for "thinking"
   };
 
+  // When a player joins as player2, ensure their uid is set and coins entry exists
   const joinGame = async () => {
     if (!newPlayerName.trim()) {
       setError('Please enter a name');
       return;
     }
-
     try {
-      // Update player2 info
-      await update(ref(database, `games/${roomId}/players/player2`), {
-        name: newPlayerName,
+      const finalName = user?.displayName || newPlayerName.trim();
+      await update(ref(db, `games/${roomId}/players/player2`), {
+        name: finalName,
+        uid: user.uid,
         connected: true
       });
-
-      // If both players are now connected, start the game
-      await update(ref(database, `games/${roomId}/gameState`), {
+      // Ensure coins entry exists for player2
+      getUserCoins(user.uid, (coins) => {
+        if (typeof coins !== 'number' || coins <= 0) {
+          setUserCoins(user.uid, 100);
+        }
+      });
+      await update(ref(db, `games/${roomId}/gameState`), {
         status: 'playing'
       });
-
-      localStorage.setItem('playerName', newPlayerName);
-      localStorage.setItem('playerNumber', 'player2');
       setPlayerNumber('player2');
       setJoinDialogOpen(false);
     } catch (error) {
@@ -482,6 +479,18 @@ const GameRoom = () => {
         const currentScore = game.gameState.scores?.[winner] || 0;
         updates[`gameState/scores/${winner}`] = currentScore + 1;
         updateLeaderboard(game.players?.[winner]?.name);
+        // Add bet amount to the winner's coins after a bet game in GameRoom.js.
+        if (winner && game.gameState.betAmount && game.gameState.betAmount > 0) {
+          const winnerUid = game.players[winner]?.uid;
+          const loser = winner === 'player1' ? 'player2' : 'player1';
+          const loserUid = game.players[loser]?.uid;
+          // Ensure both winner and loser have coins entry
+          if (winnerUid) getUserCoins(winnerUid, (coins) => { if (typeof coins !== 'number' || coins <= 0) setUserCoins(winnerUid, 100); });
+          if (loserUid) getUserCoins(loserUid, (coins) => { if (typeof coins !== 'number' || coins <= 0) setUserCoins(loserUid, 100); });
+          if (winnerUid && loserUid) {
+            await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+          }
+        }
       } else {
         const p1Blocked = isPlayerBlocked(
           playerNumber === 'player1' ? updatedPlayerTiles : game.players.player1.tiles,
@@ -516,7 +525,7 @@ const GameRoom = () => {
           }
         }
       }
-      await update(ref(database, `games/${roomId}`), updates);
+      await update(ref(db, `games/${roomId}`), updates); // Use imported db
       setSelectedTile(null);
       setDirectionChoice(null);
     } catch (error) {
@@ -591,13 +600,13 @@ const GameRoom = () => {
             winnerBlocked = "tie";
             messageBlocked = arabicText.gameTied;
           }
-          await update(ref(database, `games/${roomId}/gameState`), {
+          await update(ref(db, `games/${roomId}/gameState`), {
             winner: winnerBlocked,
             status: "finished",
             message: messageBlocked
           });
         } else {
-          await update(ref(database, `games/${roomId}/gameState`), {
+          await update(ref(db, `games/${roomId}/gameState`), {
             currentPlayerIndex: nextPlayerIndex,
             message: `${game.players?.[playerNumber]?.name} ${arabicText.hasNoPlayable}`
           });
@@ -620,7 +629,7 @@ const GameRoom = () => {
       `${game.players?.[playerNumber]?.name} ${arabicText.passes}`;
 
     try {
-      await update(ref(database, `games/${roomId}`), {
+      await update(ref(db, `games/${roomId}`), {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
         [`gameState/boneyard`]: updatedBoneyard,
         [`gameState/currentPlayerIndex`]: nextPlayerIndex,
@@ -666,10 +675,6 @@ const GameRoom = () => {
 
   return (
     <div className="game-room" dir="rtl">
-      <button onClick={() => navigate('/')} className="return-home-button button-with-logo arabic-text" style={{marginBottom: '10px'}}>
-        <img src="/logo.png" alt="" className="logo-in-button" /> {/* Logo inside button */}
-        <span>العودة إلى الصفحة الرئيسية</span> {/* Wrap text in span */}
-      </button>
       <div className="logo-container logo-container-large"> {/* Added class */}
         <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
       </div>

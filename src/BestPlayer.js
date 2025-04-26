@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchLeaderboard, arabicText } from './util';
+import { fetchLeaderboard, arabicText } from './Util';
 
-const BestPlayer = () => {
+// Accept user and coins as props for consistency
+const BestPlayer = ({ user, coins }) => {
   const [bestPlayer, setBestPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();

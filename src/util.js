@@ -1,3 +1,5 @@
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getDatabase, ref, set, onValue, update, push } from 'firebase/database';
 
 // Arabic translations
@@ -49,7 +51,21 @@ export const arabicText = {
   playAgain: "العب مرة أخرى",
   newGameStartingIn: "ستبدأ لعبة جديدة خلال",
   seconds: "ثوان",
-  hasWon: "فاز"
+  hasWon: "فاز",
+
+  // Added missing keys for button text
+  returnHome: "العودة للرئيسية",
+  lobby: "اللوبي",
+  bestPlayer: "أفضل لاعب",
+  createGame: "إنشاء لعبة جديدة",
+  login: "تسجيل الدخول",
+  register: "تسجيل حساب جديد",
+  playAnonymously: "العب كضيف",
+  or: "أو",
+  needAccount: "ليس لديك حساب؟ سجل الآن",
+  haveAccount: "لديك حساب؟ تسجيل الدخول",
+  processing: "...جاري المعالجة",
+  joining: "...جاري الانضمام"
 };
 
 // Utility Functions
@@ -184,9 +200,15 @@ export const firebaseConfig = {
   appId: "1:913698461417:web:953647edfd328c14f7c278"
 };
 
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app); // Export auth instance
+export const db = getDatabase(app); // Export database instance (assuming you might need it elsewhere)
+
 // Update leaderboard: increment or set a player's score
+// Note: Using the exported 'db' instance now
 export const updateLeaderboard = async (playerName, points) => {
-  const db = getDatabase();
+  // const db = getDatabase(); // No longer needed here
   const leaderboardRef = ref(db, 'leaderboard/' + playerName);
   // Use a transaction to increment points atomically and ensure points is always a valid number
   await update(leaderboardRef, {
@@ -198,10 +220,47 @@ export const updateLeaderboard = async (playerName, points) => {
 
 // Fetch leaderboard: get all players and their scores
 export const fetchLeaderboard = (callback) => {
-  const db = getDatabase();
+  // const db = getDatabase(); // No longer needed here
   const leaderboardRef = ref(db, 'leaderboard');
   onValue(leaderboardRef, (snapshot) => {
     const data = snapshot.val();
     callback(data);
   });
+};
+
+// Coin management
+export const getUserCoins = (uid, callback) => {
+  const coinsRef = ref(db, `coins/${uid}`);
+  onValue(coinsRef, (snapshot) => {
+    const coins = snapshot.val();
+    callback(typeof coins === 'number' ? coins : 0);
+  });
+};
+
+export const setUserCoins = async (uid, coins) => {
+  const coinsRef = ref(db, `coins/${uid}`);
+  await set(coinsRef, coins);
+};
+
+export const addUserCoins = async (uid, amount) => {
+  const coinsRef = ref(db, `coins/${uid}`);
+  let current = 0;
+  await onValue(coinsRef, (snapshot) => {
+    current = snapshot.val() || 0;
+  }, { onlyOnce: true });
+  await set(coinsRef, current + amount);
+};
+
+export const transferBetCoins = async (winnerUid, loserUid, betAmount) => {
+  if (!winnerUid || !loserUid || !betAmount || betAmount <= 0) return;
+  const winnerRef = ref(db, `coins/${winnerUid}`);
+  const loserRef = ref(db, `coins/${loserUid}`);
+  let winnerCoins = 0;
+  let loserCoins = 0;
+  await onValue(winnerRef, (snapshot) => { winnerCoins = snapshot.val() || 0; }, { onlyOnce: true });
+  await onValue(loserRef, (snapshot) => { loserCoins = snapshot.val() || 0; }, { onlyOnce: true });
+  // Prevent negative coins for loser
+  const transferAmount = Math.min(betAmount, loserCoins);
+  await set(winnerRef, winnerCoins + transferAmount);
+  await set(loserRef, loserCoins - transferAmount);
 };

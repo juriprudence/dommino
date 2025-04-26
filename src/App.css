@@ -137,6 +137,10 @@ h1 {
 
 .return-home-button {
   margin-bottom: 10px;
+  color: #fff !important;
+  background-color: #a83232 !important;
+  font-size: 1.1rem !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .start-game-button:hover, .copy-link-button:hover, .play-button:hover, .draw-button:hover, .join-button:hover, .new-game-button:hover, .return-home-button:hover {

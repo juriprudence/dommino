@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { arabicText } from './util';
+import { arabicText } from './Util'; // Corrected casing
 import DominoDots from './DominoDots';
 
 const WinnerDisplay = ({ winner, onNewGame, isTie }) => {

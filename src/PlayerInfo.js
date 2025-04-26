@@ -1,5 +1,5 @@
 import React from 'react';
-import { arabicText } from './util';
+import { arabicText } from './Util'; // Corrected casing
 
 const PlayerInfo = ({ player, isActive, isYou, isAi, aiThinking }) => (
   <div className={`player ${isActive ? 'active' : ''}`}> 
