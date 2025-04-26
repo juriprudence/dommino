@@ -39,6 +39,7 @@ const GameRoom = ({ user, coins }) => {
   const [gameMessage, setGameMessage] = useState('');
   const [aiThinking, setAiThinking] = useState(false);
   const [leaderboard, setLeaderboard] = useState({});
+  const [myCoins, setMyCoins] = useState(coins);
   const boardAreaRef = useRef(null);
   const aiRef = useRef(null);
   // const database = getDatabase(); // Use imported db instance
@@ -173,11 +174,29 @@ const GameRoom = ({ user, coins }) => {
           messageBlocked = arabicText.gameTied;
         }
         // Only update if not already set
-        update(ref(db, `games/${roomId}/gameState`), { // Use imported db
+        const deadlockUpdates = {
           winner: winnerBlocked,
           status: "finished",
           message: messageBlocked
-        });
+        };
+        if (winnerBlocked !== "tie") {
+          const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
+          deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
+          updateLeaderboard(game.players?.[winnerBlocked]?.name);
+          // Transfer coins if it's a bet game
+          if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+            const winnerUid = game.players[winnerBlocked]?.uid;
+            const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
+            const loserUid = game.players[loser]?.uid;
+            if (winnerUid && loserUid) {
+              // Wrap in async IIFE
+              (async () => {
+                await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+              })();
+            }
+          }
+        }
+        update(ref(db, `games/${roomId}/gameState`), deadlockUpdates); // Use imported db
       }
     }
   }, [game, roomId]); // Removed database from dependency array
@@ -304,6 +323,15 @@ const GameRoom = ({ user, coins }) => {
             updates[`gameState/scores/${winner}`] = currentScore + 1;
             // Update leaderboard in Firebase
             updateLeaderboard(gameData.players?.[winner]?.name);
+            // Transfer coins if it's a bet game
+            if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
+              const winnerUid = gameData.players[winner]?.uid;
+              const loser = winner === 'player1' ? 'player2' : 'player1';
+              const loserUid = gameData.players[loser]?.uid;
+              if (winnerUid && loserUid) {
+                await transferBetCoins(winnerUid, loserUid, gameData.gameState.betAmount);
+              }
+            }
           }
 
           await update(ref(db, `games/${roomId}`), updates); // Use imported db
@@ -368,6 +396,15 @@ const GameRoom = ({ user, coins }) => {
               deadlockUpdates[`scores/${winner}`] = currentScore + 1;
               // Update leaderboard in Firebase
               updateLeaderboard(gameData.players?.[winner]?.name);
+              // Transfer coins if it's a bet game
+              if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
+                const winnerUid = gameData.players[winner]?.uid;
+                const loser = winner === 'player1' ? 'player2' : 'player1';
+                const loserUid = gameData.players[loser]?.uid;
+                if (winnerUid && loserUid) {
+                  await transferBetCoins(winnerUid, loserUid, gameData.gameState.betAmount);
+                }
+              }
             }
             await update(ref(db, `games/${roomId}/gameState`), deadlockUpdates); // Use imported db
           }
@@ -522,6 +559,15 @@ const GameRoom = ({ user, coins }) => {
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
             updateLeaderboard(game.players?.[winnerBlocked]?.name);
+            // Transfer coins if it's a bet game
+            if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+              const winnerUid = game.players[winnerBlocked]?.uid;
+              const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
+              const loserUid = game.players[loser]?.uid;
+              if (winnerUid && loserUid) {
+                await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+              }
+            }
           }
         }
       }
@@ -600,11 +646,29 @@ const GameRoom = ({ user, coins }) => {
             winnerBlocked = "tie";
             messageBlocked = arabicText.gameTied;
           }
-          await update(ref(db, `games/${roomId}/gameState`), {
+          const deadlockUpdates = {
             winner: winnerBlocked,
             status: "finished",
             message: messageBlocked
-          });
+          };
+          if (winnerBlocked !== "tie") {
+            const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
+            deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
+            updateLeaderboard(game.players?.[winnerBlocked]?.name);
+            // Transfer coins if it's a bet game
+            if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+              const winnerUid = game.players[winnerBlocked]?.uid;
+              const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
+              const loserUid = game.players[loser]?.uid;
+              if (winnerUid && loserUid) {
+                // Wrap in async IIFE
+                (async () => {
+                  await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                })();
+              }
+            }
+          }
+          await update(ref(db, `games/${roomId}/gameState`), deadlockUpdates);
         } else {
           await update(ref(db, `games/${roomId}/gameState`), {
             currentPlayerIndex: nextPlayerIndex,
@@ -675,12 +739,13 @@ const GameRoom = ({ user, coins }) => {
 
   return (
     <div className="game-room" dir="rtl">
-      <div className="logo-container logo-container-large"> {/* Added class */}
+<div className="logo-container logo-container-large"> {/* Added class */}
         <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
       </div>
       <h1 className="arabic-text">{arabicText.gameTitle}</h1>
       <div className="game-info">
         <p className="arabic-text room-id-display">{arabicText.roomId}: {roomId}</p> {/* Added class */}
+        <span className="arabic-text">{arabicText.coins || 'النقاط'}: {myCoins}</span>
         {!isAiMode && (
           <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
         )}

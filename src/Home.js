@@ -309,11 +309,7 @@ const Home = ({ user, coins }) => {
 
   return (
     <div className="home-container">
-      <div className="user-info">
-        {/* Display user displayName and coins */}
-        <span>Welcome, {user?.displayName || 'Guest'}!</span> {/* Use displayName */}
-        {user?.email && <span> Coins: {coins}</span>} {/* Show coins only if logged in (not guest) */}
-      </div>
+      
       <div className="logo-container">
         <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
       </div>
@@ -323,15 +319,32 @@ const Home = ({ user, coins }) => {
 
         <div className="game-mode-selection">
           <div className="radio-group arabic-text">
-            <label>
+            <label style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <input
                 type="radio"
                 value="multiplayer"
                 checked={playMode === 'multiplayer'}
                 onChange={() => setPlayMode('multiplayer')}
+                style={{ marginLeft: '8px' }}
               />
               {arabicText.multiplayerMode}
             </label>
+            {/* Bet input appears only if 'multiplayer' (play with friend) is selected */}
+            {user && playMode === 'multiplayer' && (
+              <div className="bet-input-container arabic-text" style={{ margin: '0 0 12px 0', padding: '6px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label htmlFor="betAmount" style={{ fontWeight: 'bold', minWidth: '110px' }}>ضع رهان (عملات): </label>
+                <input
+                  type="number"
+                  id="betAmount"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  style={{ width: '70px', borderRadius: '4px', border: '1px solid #ccc', padding: '2px 6px' }}
+                />
+              </div>
+            )}
             <label>
               <input
                 type="radio"
@@ -403,21 +416,6 @@ const Home = ({ user, coins }) => {
         </button>
       </div>
 
-      {/* Bet Input - Show only for logged-in users in multiplayer mode */}
-      {user && playMode === 'multiplayer' && (
-          <div className="bet-input-container arabic-text" style={{ marginTop: '15px' }}>
-              <label htmlFor="betAmount">ضع رهان (عملات): </label>
-              <input
-                  type="number"
-                  id="betAmount"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(e.target.value)}
-                  min="0"
-                  step="1"
-                  placeholder="0"
-              />
-          </div>
-      )}
       {/* Simple styling for user info */}
       <style>{`
         .user-info {

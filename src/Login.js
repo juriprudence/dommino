@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { auth, arabicText, getUserCoins, setUserCoins } from './Util';
 import './App.css'; // Use App.css for styling
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function Login(props) {
   const [isLoginMode, setIsLoginMode] = useState(true); // true for login, false for register
@@ -16,6 +17,14 @@ function Login(props) {
   const [anonymousName, setAnonymousName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Helper to get joinRoom param from URL
+  function getJoinRoomId() {
+    const params = new URLSearchParams(location.search);
+    return params.get('joinRoom');
+  }
 
   // --- Email/Password Handlers ---
   const handleEmailPasswordSubmit = async (e) => {
@@ -45,6 +54,11 @@ function Login(props) {
         console.log("Registered and signed in with email/password. Name set to:", nameFromEmail);
         // Auth state change will be handled by App.js
       }
+      // After successful login, check for joinRoom param
+      const joinRoomId = getJoinRoomId();
+      if (joinRoomId) {
+        navigate(`/room/${joinRoomId}`);
+      }
     } catch (err) {
       console.error("Email/Password Auth Error:", err);
       setError(err.message || "Failed to authenticate. Please check your details.");
@@ -71,6 +85,12 @@ function Login(props) {
       await setUserCoins(userCredential.user.uid, 100);
       console.log("Signed in anonymously. Name set to:", anonymousName.trim());
       // Auth state change will be handled by App.js
+
+      // After successful anonymous login, check for joinRoom param
+      const joinRoomId = getJoinRoomId();
+      if (joinRoomId) {
+        navigate(`/room/${joinRoomId}`);
+      }
     } catch (err) {
       console.error("Anonymous Sign-in Error:", err);
       setError(err.message || "Failed to sign in anonymously. Please try again.");

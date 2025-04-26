@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getDatabase, ref, set, onValue, update, push } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update, push, runTransaction, get } from 'firebase/database';
 
 // Arabic translations
 export const arabicText = {
@@ -54,7 +54,10 @@ export const arabicText = {
   hasWon: "فاز",
 
   // Added missing keys for button text
-  returnHome: "العودة للرئيسية",
+  welcome: "مرحباً",
+  guest: "زائر",
+  logout: "تسجيل الخروج",
+  returnHome: "الرئيسية",
   lobby: "اللوبي",
   bestPlayer: "أفضل لاعب",
   createGame: "إنشاء لعبة جديدة",
@@ -252,15 +255,73 @@ export const addUserCoins = async (uid, amount) => {
 };
 
 export const transferBetCoins = async (winnerUid, loserUid, betAmount) => {
-  if (!winnerUid || !loserUid || !betAmount || betAmount <= 0) return;
+  if (!winnerUid || !loserUid || !betAmount || betAmount <= 0) {
+    console.error("Invalid arguments for transferBetCoins:", { winnerUid, loserUid, betAmount });
+    return;
+  }
+
   const winnerRef = ref(db, `coins/${winnerUid}`);
   const loserRef = ref(db, `coins/${loserUid}`);
-  let winnerCoins = 0;
-  let loserCoins = 0;
-  await onValue(winnerRef, (snapshot) => { winnerCoins = snapshot.val() || 0; }, { onlyOnce: true });
-  await onValue(loserRef, (snapshot) => { loserCoins = snapshot.val() || 0; }, { onlyOnce: true });
-  // Prevent negative coins for loser
-  const transferAmount = Math.min(betAmount, loserCoins);
-  await set(winnerRef, winnerCoins + transferAmount);
-  await set(loserRef, loserCoins - transferAmount);
+  console.log(`Attempting to transfer ${betAmount} coins from ${loserUid} to ${winnerUid}`);
+
+  try {
+    // 1. Get loser's current coins
+    const loserSnapshot = await get(loserRef);
+    const initialLoserCoins = loserSnapshot.val() || 0;
+
+    // 2. Determine actual amount to transfer
+    const amountToTransfer = Math.min(betAmount, initialLoserCoins);
+
+    if (amountToTransfer <= 0) {
+      console.log(`Transfer aborted: Loser ${loserUid} has insufficient funds (${initialLoserCoins}) for bet ${betAmount}.`);
+      return; // Exit if no transfer is possible
+    }
+
+    // 3. Run transaction to deduct from loser
+    console.log(`Attempting to deduct ${amountToTransfer} from loser ${loserUid}`);
+    const loserTx = await runTransaction(loserRef, (currentCoins) => {
+      // Re-check inside transaction for safety
+      const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+      // Ensure we deduct the correct amount, capped by current balance inside tx
+      const actualDeduct = Math.min(amountToTransfer, coins);
+      if (actualDeduct <= 0) {
+        return; // Abort if coins became 0 or negative unexpectedly
+      }
+      return coins - actualDeduct;
+    });
+
+    // 4. If loser transaction succeeded, run transaction to add to winner
+    if (loserTx.committed) {
+      console.log(`Successfully deducted ${amountToTransfer} from loser ${loserUid}. Attempting to add to winner ${winnerUid}`);
+      const winnerTx = await runTransaction(winnerRef, (currentCoins) => {
+        const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+        return coins + amountToTransfer; // Add the calculated amount
+      });
+
+      if (winnerTx.committed) {
+        console.log(`Successfully transferred ${amountToTransfer} coins from ${loserUid} to ${winnerUid}`);
+      } else {
+        console.error(`CRITICAL: Loser coins deducted, but winner transaction failed for ${winnerUid}. Amount: ${amountToTransfer}. Refunding loser.`);
+        // Attempt to refund the loser
+        await runTransaction(loserRef, (currentCoins) => {
+           const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+           return coins + amountToTransfer;
+        });
+      }
+    } else {
+      console.log(`Loser transaction failed or aborted for ${loserUid}. No coins transferred.`);
+    }
+
+  } catch (error) {
+    console.error("Coin transfer process failed:", error);
+    // Consider if a refund is needed here too, although it's less likely the loser was charged if the whole process errored.
+  }
+};
+
+// Get coin balance for a user (promise version, fetches once)
+export const fetchUserCoins = async (uid) => {
+  const coinsRef = ref(db, `coins/${uid}`);
+  const snapshot = await get(coinsRef);
+  const coins = snapshot.val();
+  return typeof coins === 'number' ? coins : 0;
 };
