@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth"; // Import auth and signOut functions
+import { onAuthStateChanged, signOut } from "firebase/auth"; // Removed unused getAuth
 // Database related imports might be needed elsewhere, but not for auth setup here.
 import Home from './Home';
 import GameRoom from './GameRoom';
 import Lobby from './Lobby';
 import BestPlayer from './BestPlayer';
 import Login from './Login';
-import { auth, fetchUserCoins, arabicText } from './Util'; // Add fetchUserCoins import
+import { auth, fetchUserCoins, subscribeToUserCoins, arabicText } from './Util'; // Add subscribeToUserCoins import
 import './App.css';
 // Removed Login.css import as styles are now in App.css or inline
 
@@ -18,24 +18,33 @@ function App() {
 
   useEffect(() => {
     // Listen for authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in
         setUser(firebaseUser);
-        // Fetch coins from database
+        // Fetch coins from database (initial fetch)
         const userCoins = await fetchUserCoins(firebaseUser.uid);
         setCoins(userCoins);
       } else {
-        // User is signed out
         setUser(null);
         setCoins(0);
       }
       setIsLoading(false); // Finished initial auth check
     });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, []); // Empty dependency array ensures this runs only once on mount
+    // Subscribe to real-time coin updates when user is logged in
+    let unsubscribeCoins = null;
+    if (user && user.uid) {
+      unsubscribeCoins = subscribeToUserCoins(user.uid, (updatedCoins) => {
+        setCoins(updatedCoins);
+      });
+    }
+
+    // Cleanup subscriptions on unmount or user change
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeCoins) unsubscribeCoins();
+    };
+  }, [user]); // Re-run effect if user changes
 
   // Logout handler
   const handleLogout = () => {

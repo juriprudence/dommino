@@ -47,8 +47,8 @@ class AIPlayer {
   // Medium AI: prefers to play doubles and high-value tiles first
   makeMediumMove(tiles, board, boneyard) {
     // First check if we can play a double
-    const doubleTiles = tiles.filter(tile => tile.left === tile.right);
-    
+    // const doubleTiles = tiles.filter(tile => tile.left === tile.right); // Removed unused variable
+
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
       const possiblePlays = canPlayTile(tile, board); // Get array of plays

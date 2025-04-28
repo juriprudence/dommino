@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, set, push, update } from 'firebase/database'; // Removed getDatabase
-import { arabicText, canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, db, generateDominoTiles, shuffleTiles } from './Util'; // Corrected casing
+import { ref, set, push, update, get } from 'firebase/database'; // Added get
+import { arabicText, db, generateDominoTiles, shuffleTiles, fetchUserCoins, setUserCoins } from './Util'; // Added fetchUserCoins, setUserCoins
 import DominoDots from './DominoDots'; // Keep if used elsewhere, otherwise remove
 
 // Home Component (Landing Page)
@@ -90,6 +90,13 @@ const Home = ({ user, coins }) => {
 
     // Logic for 'multiplayer' and 'ai' modes
     try {
+      // Ensure player 1 has coins initialized
+      const initialCoins = await fetchUserCoins(user.uid);
+      if (typeof initialCoins !== 'number' || initialCoins < 0) { // Check if null, undefined, or invalid
+          console.log(`Initializing coins for player 1 (${user.uid})`);
+          await setUserCoins(user.uid, 100); // Set default 100 coins
+      }
+
       console.log("Creating new game...");
       const gamesRef = ref(db, 'games'); // Use imported db
       const newGameRef = push(gamesRef);
@@ -223,6 +230,14 @@ const Home = ({ user, coins }) => {
   } else {
     // Create a new waiting game
     console.log(`Creating new 'anyone' game for ${currentUserName}`);
+
+    // Ensure player 1 has coins initialized
+    const initialCoins = await fetchUserCoins(user.uid);
+    if (typeof initialCoins !== 'number' || initialCoins < 0) { // Check if null, undefined, or invalid
+        console.log(`Initializing coins for player 1 (${user.uid}) in 'anyone' mode`);
+        await setUserCoins(user.uid, 100); // Set default 100 coins
+    }
+
     const newGameRef = push(gamesRef);
     const gameId = newGameRef.key;
     const tiles = generateDominoTiles();

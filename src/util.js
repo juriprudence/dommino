@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getDatabase, ref, set, onValue, update, push, runTransaction, get } from 'firebase/database';
+import { getDatabase, ref, set, onValue, update, push, runTransaction, get, off } from 'firebase/database'; // Added 'off'
 
 // Arabic translations
 export const arabicText = {
@@ -238,8 +238,32 @@ export const getUserCoins = (uid, callback) => {
     const coins = snapshot.val();
     callback(typeof coins === 'number' ? coins : 0);
   });
+  // Return the unsubscribe function for cleanup
+  return () => off(coinsRef);
 };
 
+// New function specifically for subscribing with cleanup
+export const subscribeToUserCoins = (uid, callback) => {
+  if (!uid) {
+    console.warn("subscribeToUserCoins called without uid");
+    return () => {}; // Return a no-op function if no uid
+  }
+  const coinsRef = ref(db, `coins/${uid}`);
+  const unsubscribe = onValue(coinsRef, (snapshot) => {
+    const coins = snapshot.val();
+    callback(typeof coins === 'number' ? coins : 0);
+  }, (error) => {
+    console.error(`Error subscribing to coins for UID ${uid}:`, error);
+    // Optionally call callback with an error indicator or default value
+    callback(0); // Example: default to 0 on error
+  });
+
+  // Return the unsubscribe function provided by onValue
+  return unsubscribe;
+};
+
+
+// The setUserCoins function below is safe to keep for user registration/init only.
 export const setUserCoins = async (uid, coins) => {
   const coinsRef = ref(db, `coins/${uid}`);
   await set(coinsRef, coins);
@@ -265,56 +289,39 @@ export const transferBetCoins = async (winnerUid, loserUid, betAmount) => {
   console.log(`Attempting to transfer ${betAmount} coins from ${loserUid} to ${winnerUid}`);
 
   try {
-    // 1. Get loser's current coins
-    const loserSnapshot = await get(loserRef);
-    const initialLoserCoins = loserSnapshot.val() || 0;
-
-    // 2. Determine actual amount to transfer
-    const amountToTransfer = Math.min(betAmount, initialLoserCoins);
-
-    if (amountToTransfer <= 0) {
-      console.log(`Transfer aborted: Loser ${loserUid} has insufficient funds (${initialLoserCoins}) for bet ${betAmount}.`);
-      return; // Exit if no transfer is possible
-    }
-
-    // 3. Run transaction to deduct from loser
-    console.log(`Attempting to deduct ${amountToTransfer} from loser ${loserUid}`);
+    // Directly deduct betAmount from loser (no balance check here)
     const loserTx = await runTransaction(loserRef, (currentCoins) => {
-      // Re-check inside transaction for safety
       const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-      // Ensure we deduct the correct amount, capped by current balance inside tx
-      const actualDeduct = Math.min(amountToTransfer, coins);
-      if (actualDeduct <= 0) {
-        return; // Abort if coins became 0 or negative unexpectedly
-      }
-      return coins - actualDeduct;
+      console.log(`[TXN Loser ${loserUid}] Deducting ${betAmount}. New balance: ${coins - betAmount}`);
+      return coins - betAmount;
     });
 
-    // 4. If loser transaction succeeded, run transaction to add to winner
+    // If loser transaction succeeded, add to winner
     if (loserTx.committed) {
-      console.log(`Successfully deducted ${amountToTransfer} from loser ${loserUid}. Attempting to add to winner ${winnerUid}`);
+      console.log(`Successfully deducted ${betAmount} from loser ${loserUid}. Attempting to add to winner ${winnerUid}`);
       const winnerTx = await runTransaction(winnerRef, (currentCoins) => {
         const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-        return coins + amountToTransfer; // Add the calculated amount
+        console.log(`[TXN Winner ${winnerUid}] Adding ${betAmount}. New balance: ${coins + betAmount}`);
+        return coins + betAmount;
       });
 
       if (winnerTx.committed) {
-        console.log(`Successfully transferred ${amountToTransfer} coins from ${loserUid} to ${winnerUid}`);
+        console.log(`Successfully transferred ${betAmount} coins from ${loserUid} to ${winnerUid}`);
       } else {
-        console.error(`CRITICAL: Loser coins deducted, but winner transaction failed for ${winnerUid}. Amount: ${amountToTransfer}. Refunding loser.`);
+        console.error(`CRITICAL: Loser coins deducted, but winner transaction failed for ${winnerUid}. Amount: ${betAmount}. Refunding loser.`);
         // Attempt to refund the loser
         await runTransaction(loserRef, (currentCoins) => {
-           const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-           return coins + amountToTransfer;
+          const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+          console.log(`[TXN Loser ${loserUid}] Refunding ${betAmount}. New balance: ${coins + betAmount}`);
+          return coins + betAmount;
         });
       }
     } else {
-      console.log(`Loser transaction failed or aborted for ${loserUid}. No coins transferred.`);
+      console.log(`Loser deduction transaction failed or aborted for ${loserUid}. No coins transferred.`);
     }
 
   } catch (error) {
     console.error("Coin transfer process failed:", error);
-    // Consider if a refund is needed here too, although it's less likely the loser was charged if the whole process errored.
   }
 };
 

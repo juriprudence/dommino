@@ -1,5 +1,5 @@
 import React from 'react';
-import { arabicText } from './util';
+import { arabicText } from './Util.js'; // Corrected path and casing
 
 const JoinDialog = ({ newPlayerName, setNewPlayerName, joinGame }) => (
   <div className="join-dialog">

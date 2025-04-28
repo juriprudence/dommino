@@ -7,9 +7,13 @@
     "repo": "https://github.com/juriprudence/dommino.git"
   },
   "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/cli": "^7.2.0",
+    "@capacitor/core": "^7.2.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "capacitor-admob": "^0.1.0",
     "firebase": "^10.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -42,5 +46,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }

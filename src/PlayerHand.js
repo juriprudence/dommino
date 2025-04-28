@@ -1,6 +1,6 @@
 import React from 'react';
 import DominoDots from './DominoDots';
-import { canPlayTile } from './util';
+import { canPlayTile } from './Util.js'; // Corrected path and casing
 
 const PlayerHand = ({ tiles, selectedTile, onTileSelect, board, arabicText }) => (
   <div className="player-hand">
