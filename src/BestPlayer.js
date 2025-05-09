@@ -1,42 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchLeaderboard, arabicText } from './Util';
+import { fetchLeaderboard } from './Util';
 
 // Accept user and coins as props for consistency
-const BestPlayer = ({ user, coins }) => {
-  const [bestPlayer, setBestPlayer] = useState(null);
+const BestPlayer = ({ user, coins, text }) => {
+  const [topPlayers, setTopPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchLeaderboard((data) => {
-      if (data) {
-        // Find player with max points (excluding AI)
-        const entries = Object.entries(data).filter(([name]) => name !== arabicText.aiPlayerName);
-        if (entries.length > 0) {
-          const sorted = entries.sort((a, b) => (b[1].points || 0) - (a[1].points || 0));
-          setBestPlayer({ name: sorted[0][0], points: sorted[0][1].points || 0 });
-        }
+      if (data && typeof data === 'object') {
+        const entries = Object.entries(data).filter(([name]) => name !== text.aiPlayerName);
+        entries.sort((a, b) => (b[1].points || 0) - (a[1].points || 0));
+        setTopPlayers(entries.slice(0, 3));
+      } else {
+        setTopPlayers([]);
       }
       setLoading(false);
     });
-  }, []);
+  }, [text.aiPlayerName]);
 
-  if (loading) return <div className="arabic-text">{arabicText.loading || 'جاري التحميل...'}</div>;
+  if (loading) return <div className="arabic-text">{text.loading}</div>;
 
   return (
     <div className="best-player-screen arabic-text" style={{textAlign: 'center', marginTop: '40px'}}>
-      <h1>{arabicText.bestPlayerTitle || 'أفضل لاعب'}</h1>
-      {bestPlayer ? (
-        <div style={{fontSize: '1.5em', margin: '30px 0'}}>
-          <span>{bestPlayer.name}</span>
-          <br />
-          <span>{arabicText.wins || 'فوز'}: {bestPlayer.points}</span>
+      <h1>{text.bestPlayer}</h1>
+      {topPlayers.length > 0 ? (
+        <div style={{fontSize: '1.2em', margin: '30px 0'}}>
+          {topPlayers.map(([name, info], idx) => (
+            <div key={name} style={{margin: '12px 0', fontWeight: idx === 0 ? 'bold' : 'normal'}}>
+              <span style={{fontSize: '1.1em'}}>
+                #{idx + 1} {name}
+              </span>
+            </div>
+          ))}
         </div>
       ) : (
-        <div>{arabicText.noPlayers || 'لا يوجد لاعبون بعد.'}</div>
+        <div>{text.noPlayers}</div>
       )}
-      <button className="return-home-button" onClick={() => navigate('/')}>{arabicText.returnHome || 'العودة للرئيسية'}</button>
+      <button className="return-home-button" onClick={() => navigate('/')}>{text.returnHome}</button>
     </div>
   );
 };

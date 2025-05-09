@@ -6,7 +6,7 @@ import {
   signInAnonymously,
   updateProfile
 } from "firebase/auth";
-import { auth, arabicText, getUserCoins, setUserCoins } from './Util';
+import { auth, getUserCoins, setUserCoins } from './Util'; // Removed arabicText import
 import './App.css'; // Use App.css for styling
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -18,6 +18,7 @@ function Login(props) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { text } = props; // Destructure text from props
   const location = useLocation();
 
   // Helper to get joinRoom param from URL
@@ -106,10 +107,10 @@ function Login(props) {
       <div className="domino-logo" style={{ marginBottom: '30px' }}>
         <img src="/logo.png" alt="Domino Logo" className="login-logo" style={{ width: '120px', height: '120px' }} />
       </div>
+<h1>{isLoginMode ? text.login : text.register} {text.or} {text.playAnonymously}</h1>
 
-      <h1>{isLoginMode ? arabicText.login : arabicText.register} {arabicText.or} {arabicText.playAnonymously}</h1>
+{error && <p className="error-message arabic-text">{error}</p>}
 
-      {error && <p className="error-message arabic-text">{error}</p>}
 
       {/* --- Email/Password Form --- */}
       <form onSubmit={handleEmailPasswordSubmit} className="start-game-form" style={{ marginBottom: '20px' }}>
@@ -117,7 +118,7 @@ function Login(props) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
+          placeholder={text.emailPlaceholder || "Email"} // Added placeholder text key
           required
           className="player-name-input" // Reusing input style
           aria-label="Email"
@@ -126,13 +127,13 @@ function Login(props) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password (min 6 chars for register)"
+          placeholder={text.passwordPlaceholder || "Password (min 6 chars for register)"} // Added placeholder text key
           required
           className="player-name-input" // Reusing input style
           aria-label="Password"
         />
         <button type="submit" className="start-game-button" disabled={isLoading}>
-          {isLoading ? arabicText.processing : (isLoginMode ? arabicText.login : arabicText.register)}
+          {isLoading ? text.processing : (isLoginMode ? text.login : text.register)}
         </button>
         <button
           type="button"
@@ -140,12 +141,12 @@ function Login(props) {
           disabled={isLoading}
           style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', marginTop: '10px', fontSize: '0.9rem' }}
         >
-          {isLoginMode ? arabicText.needAccount : arabicText.haveAccount}
+          {isLoginMode ? text.needAccount : text.haveAccount}
         </button>
       </form>
 
       {/* Divider */}
-      <p style={{ margin: '20px 0', fontWeight: 'bold', color: 'var(--dark-color)' }}>{arabicText.or}</p>
+      <p style={{ margin: '20px 0', fontWeight: 'bold', color: 'var(--dark-color)' }}>{text.or}</p>
 
       {/* --- Anonymous Login Form --- */}
       <form onSubmit={handleAnonymousSubmit} className="start-game-form">
@@ -153,13 +154,13 @@ function Login(props) {
           type="text"
           value={anonymousName}
           onChange={(e) => setAnonymousName(e.target.value)}
-          placeholder="Enter Your Name"
+          placeholder={text.enterNamePlaceholder || "Enter Your Name"} // Added placeholder text key
           required
           className="player-name-input arabic-input" // Reusing input style + arabic alignment
           aria-label="Your Name for Anonymous Play"
         />
         <button type="submit" className="start-game-button" disabled={isLoading}>
-          {isLoading ? arabicText.joining : arabicText.playAnonymously}
+          {isLoading ? text.joining : text.playAnonymously}
         </button>
       </form>
     </div>

@@ -2,9 +2,9 @@ import React from 'react';
 import DominoDots from './DominoDots';
 import { canPlayTile } from './Util.js'; // Corrected path and casing
 
-const PlayerHand = ({ tiles, selectedTile, onTileSelect, board, arabicText }) => (
+const PlayerHand = ({ tiles, selectedTile, onTileSelect, board, text }) => (
   <div className="player-hand">
-    <h3 className="arabic-text">{arabicText.yourTiles}</h3>
+    <h3 className="arabic-text">{text.yourTiles}</h3>
     <div className="tiles">
       {(tiles || []).map((tile, index) => {
         let flipped = false;

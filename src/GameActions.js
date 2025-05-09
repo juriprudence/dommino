@@ -1,20 +1,20 @@
 import React from 'react';
 
-const GameActions = ({ onPlayTile, onDrawTile, selectedTile, isMyTurn, boneyard, arabicText }) => (
+const GameActions = ({ onPlayTile, onDrawTile, selectedTile, isMyTurn, boneyard, text }) => (
   <div className="game-actions">
-    <button 
-      onClick={onPlayTile} 
+    <button
+      className="play-button arabic-text"
+      onClick={onPlayTile}
       disabled={!selectedTile || !isMyTurn()}
-      className={`play-button arabic-text ${!selectedTile || !isMyTurn() ? 'disabled' : ''}`}
     >
-      {arabicText.playTile}
+      {text.play}
     </button>
-    <button 
+    <button
+      className="draw-button arabic-text"
       onClick={onDrawTile}
-      disabled={!isMyTurn() || !boneyard || boneyard.length === 0}
-      className={`draw-button arabic-text ${!isMyTurn() || !boneyard || boneyard.length === 0 ? 'disabled' : ''}`}
+      disabled={!boneyard || boneyard.length === 0 || !isMyTurn()}
     >
-      {arabicText.drawTile} ({boneyard ? boneyard.length : 0})
+      {text.draw}
     </button>
   </div>
 );

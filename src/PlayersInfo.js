@@ -1,7 +1,7 @@
 import React from 'react';
 import PlayerInfo from './PlayerInfo';
 
-const PlayersInfo = ({ game, playerNumber, isAiMode, aiThinking }) => (
+const PlayersInfo = ({ game, playerNumber, isAiMode, aiThinking, text }) => (
   <div className="players-info">
     <PlayerInfo
       player={{
@@ -12,6 +12,7 @@ const PlayersInfo = ({ game, playerNumber, isAiMode, aiThinking }) => (
       isYou={playerNumber === 'player1'}
       isAi={false}
       aiThinking={false}
+      text={text}
     />
     <PlayerInfo
       player={{
@@ -22,6 +23,7 @@ const PlayersInfo = ({ game, playerNumber, isAiMode, aiThinking }) => (
       isYou={playerNumber === 'player2'}
       isAi={isAiMode}
       aiThinking={aiThinking}
+      text={text}
     />
   </div>
 );

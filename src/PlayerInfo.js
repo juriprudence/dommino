@@ -1,14 +1,13 @@
 import React from 'react';
-import { arabicText } from './Util'; // Corrected casing
 
-const PlayerInfo = ({ player, isActive, isYou, isAi, aiThinking }) => (
+const PlayerInfo = ({ player, isActive, isYou, isAi, aiThinking, text }) => (
   <div className={`player ${isActive ? 'active' : ''}`}> 
     <h3 className="arabic-text">
-      {player.name} {isYou ? arabicText.you : ''} {isAi && <span className="ai-indicator">{arabicText.aiIndicator}</span>}
+      {player.name} {isYou ? text.you : ''} {isAi && <span className="ai-indicator">{text.aiIndicator}</span>}
     </h3>
     
-    <p className="arabic-text">{arabicText.tiles}: {player.tiles ? player.tiles.length : 0}</p>
-    {aiThinking && <div className="ai-thinking arabic-text">{arabicText.aiThinking}...</div>}
+    <p className="arabic-text">{text.tiles}: {player.tiles ? player.tiles.length : 0}</p>
+    {aiThinking && <div className="ai-thinking arabic-text">{text.aiThinking}...</div>}
   </div>
 );
 

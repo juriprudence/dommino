@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import { ref, onValue, update, remove, get } from 'firebase/database'; // Added get
-import { arabicText, canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, transferBetCoins, setUserCoins, getUserCoins, db, fetchUserCoins } from './Util'; // Added fetchUserCoins, removed unused getUserCoins
+import { canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, transferBetCoins, setUserCoins, getUserCoins, db, fetchUserCoins } from './Util'; // Added fetchUserCoins, removed unused getUserCoins
 // import DominoDots from './DominoDots'; // Removed unused import
 import AIPlayer from './AIPlayer';
 import WinnerDisplay from './WinnerDisplay';
@@ -30,7 +30,7 @@ import PlayersInfo from './PlayersInfo'; // Import PlayersInfo
 
 // Game Room Component
 // Accept user and coins as props
-const GameRoom = ({ user, coins }) => {
+const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
@@ -151,14 +151,14 @@ const GameRoom = ({ user, coins }) => {
   
           if (updatedAiTiles.length === 0) {
             winner = "player2";
-            message = `${gameData.players?.player2?.name} ${arabicText.wins}`;
+            message = `${gameData.players?.player2?.name} ${text.wins}`;
           }
   
           const updates = {
             [`players/player2/tiles`]: updatedAiTiles,
             [`gameState/board`]: updatedBoard,
             [`gameState/currentPlayerIndex`]: nextPlayerIndex,
-            [`gameState/message`]: `${gameData.players?.player2?.name} ${arabicText.played}`
+            [`gameState/message`]: `${gameData.players?.player2?.name} ${text.played}`
           };
   
           if (winner) {
@@ -169,7 +169,7 @@ const GameRoom = ({ user, coins }) => {
             const currentScore = gameData.gameState.scores?.[winner] || 0;
             updates[`gameState/scores/${winner}`] = currentScore + 1;
             // Update leaderboard in Firebase
-            updateLeaderboard(gameData.players?.[winner]?.name);
+            updateLeaderboard(gameData.players?.[winner]?.name, currentScore + 1, gameData.players?.[winner]?.uid);
             // Transfer coins if it's a bet game
             if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
               const winnerUid = gameData.players[winner]?.uid;
@@ -196,8 +196,8 @@ const GameRoom = ({ user, coins }) => {
           const nextPlayerIndex = canPlay ? 1 : 0; // Stay AI's turn if can play, otherwise human's turn
   
           const message = canPlay ?
-            `${gameData.players?.player2?.name} ${arabicText.canPlay}` :
-            `${gameData.players?.player2?.name} ${arabicText.passes}`;
+            `${gameData.players?.player2?.name} ${text.canPlay}` :
+            `${gameData.players?.player2?.name} ${text.passes}`;
   
           await update(ref(db, `games/${roomId}`), { // Use imported db
             [`players/player2/tiles`]: updatedAiTiles,
@@ -212,7 +212,7 @@ const GameRoom = ({ user, coins }) => {
           // AI passes
           await update(ref(db, `games/${roomId}/gameState`), { // Use imported db
             currentPlayerIndex: 0, // Back to human player
-            message: `${gameData.players?.player2?.name} ${arabicText.passes}`
+            message: `${gameData.players?.player2?.name} ${text.passes}`
           });
   
           // Check if both players are blocked
@@ -225,13 +225,13 @@ const GameRoom = ({ user, coins }) => {
             let winner, message;
             if (p1Points < p2Points) {
               winner = "player1";
-              message = `${gameData.players?.player1?.name} ${arabicText.winsLowPoints}`;
+              message = `${gameData.players?.player1?.name} ${text.winsLowPoints}`;
             } else if (p2Points < p1Points) {
               winner = "player2";
-              message = `${gameData.players?.player2?.name} ${arabicText.winsLowPoints}`;
+              message = `${gameData.players?.player2?.name} ${text.winsLowPoints}`;
             } else {
               winner = "tie";
-              message = arabicText.gameTied;
+              message = text.gameTied;
             }
   
             const deadlockUpdates = {
@@ -244,7 +244,7 @@ const GameRoom = ({ user, coins }) => {
               const currentScore = gameData.gameState.scores?.[winner] || 0;
               deadlockUpdates[`scores/${winner}`] = currentScore + 1;
               // Update leaderboard in Firebase
-              updateLeaderboard(gameData.players?.[winner]?.name);
+              updateLeaderboard(gameData.players?.[winner]?.name, currentScore + 1, gameData.players?.[winner]?.uid);
               // Transfer coins if it's a bet game
               if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
                 const winnerUid = gameData.players[winner]?.uid;
@@ -266,7 +266,7 @@ const GameRoom = ({ user, coins }) => {
         setAiThinking(false);
       }
     }, 1500); // 1.5 second delay for "thinking"
-  }, [aiThinking, roomId]); // Dependencies for useCallback
+  }, [aiThinking, roomId, text]); // Dependencies for useCallback
   
   useEffect(() => {
     console.log("Loading room:", roomId);
@@ -412,13 +412,13 @@ const GameRoom = ({ user, coins }) => {
         let winnerBlocked, messageBlocked;
         if (p1Points < p2Points) {
           winnerBlocked = "player1";
-          messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+          messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
         } else if (p2Points < p1Points) {
           winnerBlocked = "player2";
-          messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+          messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
         } else {
           winnerBlocked = "tie";
-          messageBlocked = arabicText.gameTied;
+          messageBlocked = text.gameTied;
         }
         // Only update if not already set
         const deadlockUpdates = {
@@ -429,7 +429,7 @@ const GameRoom = ({ user, coins }) => {
         if (winnerBlocked !== "tie") {
           const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
           deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
-          updateLeaderboard(game.players?.[winnerBlocked]?.name);
+          updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
           // Transfer coins if it's a bet game
           if (game.gameState.betAmount && game.gameState.betAmount > 0) {
             const winnerUid = game.players[winnerBlocked]?.uid;
@@ -518,7 +518,7 @@ const GameRoom = ({ user, coins }) => {
     if (!game) return;
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage(arabicText.notYourTurn);
+      setGameMessage(text.notYourTurn);
       return;
     }
 
@@ -547,14 +547,14 @@ const GameRoom = ({ user, coins }) => {
     let message = "";
     if (updatedPlayerTiles.length === 0) {
       winner = playerNumber;
-      message = `${game.players?.[playerNumber]?.name} ${arabicText.wins}`;
+      message = `${game.players?.[playerNumber]?.name} ${text.wins}`;
     }
     try {
       const updates = {
         [`players/${playerNumber}/tiles`]: updatedPlayerTiles,
         [`gameState/board`]: updatedBoard,
         [`gameState/currentPlayerIndex`]: nextPlayerIndex,
-        [`gameState/message`]: `${game.players?.[playerNumber]?.name} ${arabicText.played}`
+        [`gameState/message`]: `${game.players?.[playerNumber]?.name} ${text.played}`
       };
       if (winner) {
         updates[`gameState/winner`] = winner;
@@ -562,7 +562,7 @@ const GameRoom = ({ user, coins }) => {
         updates[`gameState/message`] = message;
         const currentScore = game.gameState.scores?.[winner] || 0;
         updates[`gameState/scores/${winner}`] = currentScore + 1;
-        updateLeaderboard(game.players?.[winner]?.name);
+        updateLeaderboard(game.players?.[winner]?.name, currentScore + 1, game.players?.[winner]?.uid);
         // Transfer coins if it's a bet game
         if (game.gameState.betAmount && game.gameState.betAmount > 0) {
           const winnerUid = game.players[winner]?.uid;
@@ -590,13 +590,13 @@ const GameRoom = ({ user, coins }) => {
           let winnerBlocked, messageBlocked;
           if (p1Points < p2Points) {
             winnerBlocked = "player1";
-            messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+            messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
           } else if (p2Points < p1Points) {
             winnerBlocked = "player2";
-            messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+            messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
           } else {
             winnerBlocked = "tie";
-            messageBlocked = arabicText.gameTied;
+            messageBlocked = text.gameTied;
           }
           updates[`gameState/winner`] = winnerBlocked;
           updates[`gameState/status`] = "finished";
@@ -604,7 +604,7 @@ const GameRoom = ({ user, coins }) => {
           if (winnerBlocked !== "tie") {
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
-            updateLeaderboard(game.players?.[winnerBlocked]?.name);
+            updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
             // Transfer coins if it's a bet game
             if (game.gameState.betAmount && game.gameState.betAmount > 0) {
               const winnerUid = game.players[winnerBlocked]?.uid;
@@ -636,7 +636,7 @@ const GameRoom = ({ user, coins }) => {
     if (chosenPlay) {
       executePlay(chosenPlay);
     } else {
-      setGameMessage("اختيار غير صالح.");
+      setGameMessage(text.invalidChoice);
       setDirectionChoice(null);
     }
   };
@@ -644,13 +644,13 @@ const GameRoom = ({ user, coins }) => {
   const handlePlayTile = async () => {
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage(arabicText.notYourTurn);
+      setGameMessage(text.notYourTurn);
       return;
     }
     const board = game.gameState.board || [];
     const possiblePlays = canPlayTile(selectedTile, board);
     if (possiblePlays.length === 0) {
-      setGameMessage(arabicText.cantPlay);
+      setGameMessage(text.cantPlay);
       return;
     }
     if (possiblePlays.length > 1) {
@@ -665,12 +665,12 @@ const GameRoom = ({ user, coins }) => {
     
     const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
     if (playerNumber !== currentPlayerNumber) {
-      setGameMessage(arabicText.notYourTurn);
+      setGameMessage(text.notYourTurn);
       return;
     }
 
     if (!game.gameState.boneyard || game.gameState.boneyard.length === 0) {
-      setGameMessage(arabicText.noTilesLeft);
+      setGameMessage(text.noTilesLeft);
       
       // If boneyard is empty and player can't play, skip turn
       const canPlay = !isPlayerBlocked(game.players?.[playerNumber]?.tiles || [], game.gameState.board);
@@ -686,13 +686,13 @@ const GameRoom = ({ user, coins }) => {
           let winnerBlocked, messageBlocked;
           if (p1Points < p2Points) {
             winnerBlocked = "player1";
-            messageBlocked = `${game.players?.player1?.name} ${arabicText.winsLowPoints}`;
+            messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
           } else if (p2Points < p1Points) {
             winnerBlocked = "player2";
-            messageBlocked = `${game.players?.player2?.name} ${arabicText.winsLowPoints}`;
+            messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
           } else {
             winnerBlocked = "tie";
-            messageBlocked = arabicText.gameTied;
+            messageBlocked = text.gameTied;
           }
           const deadlockUpdates = {
             winner: winnerBlocked,
@@ -702,7 +702,7 @@ const GameRoom = ({ user, coins }) => {
           if (winnerBlocked !== "tie") {
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
-            updateLeaderboard(game.players?.[winnerBlocked]?.name);
+            updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
             // Transfer coins if it's a bet game
             if (game.gameState.betAmount && game.gameState.betAmount > 0) {
               const winnerUid = game.players[winnerBlocked]?.uid;
@@ -719,7 +719,7 @@ const GameRoom = ({ user, coins }) => {
         } else {
           await update(ref(db, `games/${roomId}/gameState`), {
             currentPlayerIndex: nextPlayerIndex,
-            message: `${game.players?.[playerNumber]?.name} ${arabicText.hasNoPlayable}`
+            message: `${game.players?.[playerNumber]?.name} ${text.hasNoPlayable}`
           });
         }
       }
@@ -736,8 +736,8 @@ const GameRoom = ({ user, coins }) => {
                          (game.gameState.currentPlayerIndex === 0 ? 1 : 0);
 
     const message = canPlay ? 
-      `${game.players?.[playerNumber]?.name} ${arabicText.canPlay}` :
-      `${game.players?.[playerNumber]?.name} ${arabicText.passes}`;
+      `${game.players?.[playerNumber]?.name} ${text.canPlay}` :
+      `${game.players?.[playerNumber]?.name} ${text.passes}`;
 
     try {
       await update(ref(db, `games/${roomId}`), {
@@ -748,7 +748,7 @@ const GameRoom = ({ user, coins }) => {
       });
     } catch (error) {
       console.error("Error drawing tile:", error);
-      setError("Failed to draw tile");
+      setError(text.failedToDrawTile);
     }
   };
 
@@ -763,12 +763,12 @@ const GameRoom = ({ user, coins }) => {
       navigate('/');
     } catch (error) {
       console.error("Error starting new game:", error);
-      setError("Failed to start new game");
+      setError(text.failedToStartNewGame);
     }
   };
 
   if (loading) {
-    return <div className="loading arabic-text">{arabicText.loading}</div>;
+    return <div className="loading arabic-text">{text.loading}</div>;
   }
 
   if (error) {
@@ -776,7 +776,7 @@ const GameRoom = ({ user, coins }) => {
   }
 
   if (!game) {
-    return <div className="error arabic-text">{arabicText.gameNotFound}</div>;
+    return <div className="error arabic-text">{text.gameNotFound}</div>;
   }
 
   // Check if game is in waiting state
@@ -785,35 +785,33 @@ const GameRoom = ({ user, coins }) => {
   const isAiMode = game.gameState.gameMode === 'ai';
 
   return (
-    <div className="game-room" dir="rtl">
-<div className="logo-container logo-container-large"> {/* Added class */}
-        <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
+    <div className="game-room" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="game-header">
+        <h1 className="arabic-text">{text.gameTitle}</h1>
+        {isWaiting && (
+          <div className="game-info">
+            <p className="arabic-text room-id-display">{text.roomId}: {roomId}</p>
+            <span className="arabic-text">{text.coins || 'النقاط'}: {coins}</span>
+            {!isAiMode && (
+              <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
+            )}
+            {isAiMode && (
+              <span className="ai-mode-indicator arabic-text">{text.aiModeActive} ({text[game.gameState.aiDifficulty]})</span>
+            )}
+          </div>
+        )}
+        {gameMessage && (
+          <div className="game-message arabic-text">
+            {gameMessage}
+          </div>
+        )}
       </div>
-      <h1 className="arabic-text">{arabicText.gameTitle}</h1>
-      {isWaiting && (
-        <div className="game-info">
-          <p className="arabic-text room-id-display">{arabicText.roomId}: {roomId}</p> {/* Added class */}
-          <span className="arabic-text">{arabicText.coins || 'النقاط'}: {coins}</span>
-          {!isAiMode && (
-            <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
-          )}
-          {isAiMode && (
-            <span className="ai-mode-indicator arabic-text">{arabicText.aiModeActive} ({arabicText[game.gameState.aiDifficulty]})</span>
-          )}
-        </div>
-      )}
-      {gameMessage && (
-        <div className="game-message arabic-text">
-          {gameMessage}
-        </div>
-      )}
-
       {isWaiting ? (
         <div className="waiting-screen">
-          <h2 className="arabic-text">{arabicText.waiting}</h2>
-          <p className="arabic-text">{arabicText.shareLink}</p>
+          <h2 className="arabic-text">{text.waiting}</h2>
+          <p className="arabic-text">{text.shareLink}</p>
           <p className="game-link">https://elhabdomino.fun/#/room/{roomId}</p>
-          <button onClick={copyGameLink} className="copy-link-button arabic-text">{arabicText.copyLink}</button>
+          <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
         </div>
       ) : (
         <div className="game-board">
@@ -822,20 +820,21 @@ const GameRoom = ({ user, coins }) => {
             playerNumber={playerNumber}
             isAiMode={isAiMode}
             aiThinking={aiThinking}
+            text={text}
           />
 
           <BoardArea
             ref={boardAreaRef}
             board={game.gameState.board}
-            arabicText={arabicText}
+            text={text}
           />
 
           {!isFinished && playerNumber && game.players?.[playerNumber] && (
             <div className="player-controls">
               {directionChoice && (
                 <div className="direction-choice-buttons" style={{ textAlign: 'center', margin: '10px 0' }}>
-                  <button className="play-button arabic-text" style={{marginLeft: '10px'}} onClick={() => handleDirectionChoice('right')}>اليمين</button>
-                  <button className="play-button arabic-text" onClick={() => handleDirectionChoice('left')}>اليسار</button>
+                  <button className="play-button arabic-text" style={{marginLeft: '10px'}} onClick={() => handleDirectionChoice('right')}>{text.right}</button>
+                  <button className="play-button arabic-text" onClick={() => handleDirectionChoice('left')}>{text.left}</button>
                 </div>
               )}
               <PlayerHand
@@ -843,16 +842,16 @@ const GameRoom = ({ user, coins }) => {
                 selectedTile={selectedTile}
                 onTileSelect={handleTileSelect}
                 board={game.gameState.board}
-                arabicText={arabicText}
+                text={text}
               />
               
               <GameActions
                 onPlayTile={handlePlayTile}
                 onDrawTile={handleDrawTile}
                 selectedTile={selectedTile}
-                isMyTurn={isMyTurn} // Pass the function, not the result
+                isMyTurn={isMyTurn}
                 boneyard={game.gameState.boneyard}
-                arabicText={arabicText}
+                text={text}
               />
             </div>
           )}
@@ -862,6 +861,7 @@ const GameRoom = ({ user, coins }) => {
               winner={game.gameState.winner === 'tie' ? 'tie' : game.players[game.gameState.winner]} 
               onNewGame={startNewGame}
               isTie={game.gameState.winner === 'tie'}
+              text={text}
             />
           )}
         </div>
@@ -872,6 +872,7 @@ const GameRoom = ({ user, coins }) => {
           newPlayerName={newPlayerName}
           setNewPlayerName={setNewPlayerName}
           joinGame={joinGame}
+          text={text}
         />
       )}
     </div>

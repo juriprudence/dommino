@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, set, push, update, get } from 'firebase/database'; // Added get
-import { arabicText, db, generateDominoTiles, shuffleTiles, fetchUserCoins, setUserCoins } from './Util'; // Added fetchUserCoins, setUserCoins
+import { db, generateDominoTiles, shuffleTiles, fetchUserCoins, setUserCoins } from './Util'; // Removed arabicText, Added fetchUserCoins, setUserCoins
 import DominoDots from './DominoDots'; // Keep if used elsewhere, otherwise remove
 
-// Home Component (Landing Page)
 // Accept user and coins as props
-const Home = ({ user, coins }) => {
+const Home = ({ user, coins, language, text }) => { // Add language and text props
   const navigate = useNavigate();
   // Removed playerName state, using user.name prop instead
   const [error, setError] = useState('');
@@ -121,7 +120,7 @@ const Home = ({ user, coins }) => {
             // TODO: Add coins if needed for game logic?
           },
           player2: {
-            name: playMode === 'ai' ? arabicText.aiPlayerName : '',
+            name: playMode === 'ai' ? text.aiPlayerName : '',
             uid: '',
             tiles: player2Tiles,
             connected: playMode === 'ai'
@@ -324,13 +323,13 @@ const Home = ({ user, coins }) => {
 
   return (
     <div className="home-container">
-      
       <div className="logo-container">
         <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
       </div>
-      <h1 className="arabic-text">{arabicText.gameTitle}</h1>
+      <h1 className="arabic-text">{text.gameTitle}</h1>
       <div className="start-game-form">
         {/* Removed player name input */}
+
 
         <div className="game-mode-selection">
           <div className="radio-group arabic-text">
@@ -342,12 +341,12 @@ const Home = ({ user, coins }) => {
                 onChange={() => setPlayMode('multiplayer')}
                 style={{ marginLeft: '8px' }}
               />
-              {arabicText.multiplayerMode}
+              {text.multiplayerMode}
             </label>
             {/* Bet input appears only if 'multiplayer' (play with friend) is selected */}
             {user && playMode === 'multiplayer' && (
               <div className="bet-input-container arabic-text" style={{ margin: '0 0 12px 0', padding: '6px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label htmlFor="betAmount" style={{ fontWeight: 'bold', minWidth: '110px' }}>ضع رهان (عملات): </label>
+                <label htmlFor="betAmount" style={{ fontWeight: 'bold', minWidth: '110px' }}>{text.placeBet || 'ضع رهان (عملات):'}</label> {/* Added text key */}
                 <input
                   type="range"
                   id="betAmount"
@@ -372,7 +371,7 @@ const Home = ({ user, coins }) => {
                 checked={playMode === 'ai'}
                 onChange={() => setPlayMode('ai')}
               />
-              {arabicText.aiMode}
+              {text.aiMode} {/* Use text prop */}
             </label>
             <label>
               <input
@@ -381,13 +380,13 @@ const Home = ({ user, coins }) => {
                 checked={playMode === 'anyone'}
                 onChange={() => setPlayMode('anyone')}
               />
-              العب مع أي شخص
+              {text.playWithAnyone || 'العب مع أي شخص'} {/* Added text key */}
             </label>
           </div>
 
           {playMode === 'ai' && (
             <div className="ai-difficulty arabic-text">
-              <h4>{arabicText.aiDifficulty}</h4>
+              <h4>{text.aiDifficulty}</h4>
               <div className="difficulty-options">
                 <label>
                   <input
@@ -396,7 +395,7 @@ const Home = ({ user, coins }) => {
                     checked={aiDifficulty === 'easy'}
                     onChange={() => setAiDifficulty('easy')}
                   />
-                  {arabicText.easy}
+                  {text.easy}
                 </label>
                 <label>
                   <input
@@ -405,7 +404,7 @@ const Home = ({ user, coins }) => {
                     checked={aiDifficulty === 'medium'}
                     onChange={() => setAiDifficulty('medium')}
                   />
-                  {arabicText.medium}
+                  {text.medium}
                 </label>
                 <label>
                   <input
@@ -414,27 +413,27 @@ const Home = ({ user, coins }) => {
                     checked={aiDifficulty === 'hard'}
                     onChange={() => setAiDifficulty('hard')}
                   />
-                  {arabicText.hard}
+                  {text.hard}
                 </label>
               </div>
             </div>
           )}
         </div>
+{error && <p className="error-message">{error}</p>}
+{/* Updated button text based on mode */}
+<button onClick={playMode === 'anyone' ? handlePlayWithAnyone : handleStartGame} className="start-game-button arabic-text">
+  {playMode === 'multiplayer' ? text.createGame :
+   playMode === 'ai' ? text.startGame :
+   (text.findJoinGame || 'ابحث عن لعبة / انضم')} {/* Added text key */}
+</button>
+<button onClick={() => navigate('/lobby')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
+  {text.lobby} {/* Using text prop */}
+</button>
+<button onClick={() => navigate('/best-player')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
+  {text.bestPlayer} {/* Using text prop */}
+</button>
+</div>
 
-        {error && <p className="error-message">{error}</p>}
-        {/* Updated button text based on mode */}
-        <button onClick={playMode === 'anyone' ? handlePlayWithAnyone : handleStartGame} className="start-game-button arabic-text">
-          {playMode === 'multiplayer' ? arabicText.createGame :
-           playMode === 'ai' ? arabicText.startGame :
-           'ابحث عن لعبة / انضم'}
-        </button>
-        <button onClick={() => navigate('/lobby')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
-          {arabicText.lobby} {/* Using key from util.js */}
-        </button>
-        <button onClick={() => navigate('/best-player')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
-          {arabicText.bestPlayer} {/* Using key from util.js */}
-        </button>
-      </div>
 
       {/* Simple styling for user info */}
       <style>{`

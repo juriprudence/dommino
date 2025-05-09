@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { arabicText } from './Util'; // Corrected casing
 import DominoDots from './DominoDots';
 
-const WinnerDisplay = ({ winner, onNewGame, isTie }) => {
+const WinnerDisplay = ({ winner, onNewGame, isTie, text }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   
   useEffect(() => {
@@ -36,15 +35,15 @@ const WinnerDisplay = ({ winner, onNewGame, isTie }) => {
       )}
       
       <div className="winner-card">
-        <h2 className="arabic-text">{arabicText.gameOver}</h2>
+        <h2 className="arabic-text">{text.gameOver}</h2>
         
         {isTie ? (
           <div className="tie-message">
-            <p className="arabic-text">{arabicText.gameTied}</p>
+            <p className="arabic-text">{text.gameTied}</p>
           </div>
         ) : (
           <div className="winner-info">
-            <p className="arabic-text">{winner.name} {arabicText.wins}</p>
+            <p className="arabic-text">{winner.name} {text.wins}</p>
             
             <div className="trophy-animation">
               <div className="trophy">
@@ -62,7 +61,7 @@ const WinnerDisplay = ({ winner, onNewGame, isTie }) => {
         )}
         
         <button onClick={onNewGame} className="new-game-button arabic-text">
-          {arabicText.newGame}
+          {text.newGame}
         </button>
       </div>
     </div>

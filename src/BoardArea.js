@@ -1,7 +1,7 @@
 import React from 'react';
 import DominoDots from './DominoDots';
 
-const BoardArea = React.forwardRef(({ board, arabicText }, ref) => (
+const BoardArea = React.forwardRef(({ board, text }, ref) => (
   <div className="board-area" ref={ref}>
     {board && board.length > 0 ? (
       <div className="board-tiles">
@@ -19,7 +19,7 @@ const BoardArea = React.forwardRef(({ board, arabicText }, ref) => (
         ))}
       </div>
     ) : (
-      <p className="arabic-text">{arabicText.noTiles}</p>
+      <p className="arabic-text">{text.noTiles}</p>
     )}
   </div>
 ));
