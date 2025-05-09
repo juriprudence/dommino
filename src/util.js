@@ -498,50 +498,90 @@ export const addUserCoins = async (uid, amount) => {
   await set(coinsRef, current + amount);
 };
 
-export const transferBetCoins = async (winnerUid, loserUid, betAmount) => {
-  if (!winnerUid || !loserUid || !betAmount || betAmount <= 0) {
-    console.error("Invalid arguments for transferBetCoins:", { winnerUid, loserUid, betAmount });
+export const transferBetCoins = async (winnerUid, loserUids, betAmount) => {
+  if (!winnerUid || !Array.isArray(loserUids) || loserUids.length === 0 || typeof betAmount !== 'number' || betAmount <= 0) {
+    console.error("Invalid parameters for transferBetCoins:", { winnerUid, loserUids, betAmount });
     return;
   }
 
-  const winnerRef = ref(db, `coins/${winnerUid}`);
-  const loserRef = ref(db, `coins/${loserUid}`);
-  console.log(`Attempting to transfer ${betAmount} coins from ${loserUid} to ${winnerUid}`);
+  const winnerCoinsRef = ref(db, `coins/${winnerUid}`);
+  let totalWinnings = 0;
+  const successfulLosers = []; // Keep track of losers who successfully paid
 
-  try {
-    // Directly deduct betAmount from loser (no balance check here)
-    const loserTx = await runTransaction(loserRef, (currentCoins) => {
-      const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-      console.log(`[TXN Loser ${loserUid}] Deducting ${betAmount}. New balance: ${coins - betAmount}`);
-      return coins - betAmount;
-    });
-
-    // If loser transaction succeeded, add to winner
-    if (loserTx.committed) {
-      console.log(`Successfully deducted ${betAmount} from loser ${loserUid}. Attempting to add to winner ${winnerUid}`);
-      const winnerTx = await runTransaction(winnerRef, (currentCoins) => {
+  // Process each loser
+  for (const loserUid of loserUids) {
+    if (!loserUid) {
+      console.warn("Skipping undefined loserUid in transferBetCoins");
+      continue;
+    }
+    const loserCoinsRef = ref(db, `coins/${loserUid}`);
+    try {
+      const loserTx = await runTransaction(loserCoinsRef, (currentCoins) => {
         const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-        console.log(`[TXN Winner ${winnerUid}] Adding ${betAmount}. New balance: ${coins + betAmount}`);
-        return coins + betAmount;
+        // Ensure loser doesn't go below 0, though Firebase rules might also enforce this
+        const newAmount = coins - betAmount;
+        console.log(`[TXN Loser ${loserUid}] Current: ${coins}, Bet: ${betAmount}, New: ${newAmount < 0 ? 0 : newAmount}`);
+        return newAmount < 0 ? 0 : newAmount;
+      });
+
+      if (loserTx.committed) {
+        console.log(`Successfully deducted ${betAmount} coins from loser ${loserUid}`);
+        totalWinnings += betAmount;
+        successfulLosers.push(loserUid); // Add to list of successful payers
+      } else {
+        console.log(`Loser deduction transaction failed or aborted for ${loserUid}.`);
+      }
+    } catch (error) {
+      console.error(`Failed to deduct coins from loser ${loserUid}:`, error);
+      // Decide if the transaction should halt or continue for other losers
+    }
+  }
+
+  // Add total winnings to the winner only if there were successful deductions
+  if (totalWinnings > 0) {
+    try {
+      const winnerTx = await runTransaction(winnerCoinsRef, (currentCoins) => {
+        const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+        console.log(`[TXN Winner ${winnerUid}] Current: ${coins}, Adding: ${totalWinnings}, New: ${coins + totalWinnings}`);
+        return coins + totalWinnings;
       });
 
       if (winnerTx.committed) {
-        console.log(`Successfully transferred ${betAmount} coins from ${loserUid} to ${winnerUid}`);
+        console.log(`Successfully added ${totalWinnings} coins to winner ${winnerUid} from ${successfulLosers.length} loser(s).`);
       } else {
-        console.error(`CRITICAL: Loser coins deducted, but winner transaction failed for ${winnerUid}. Amount: ${betAmount}. Refunding loser.`);
-        // Attempt to refund the loser
-        await runTransaction(loserRef, (currentCoins) => {
-          const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-          console.log(`[TXN Loser ${loserUid}] Refunding ${betAmount}. New balance: ${coins + betAmount}`);
-          return coins + betAmount;
-        });
+         console.error(`CRITICAL: Winner transaction failed for ${winnerUid} after ${successfulLosers.length} loser(s) paid. Total Winnings: ${totalWinnings}. Attempting to refund.`);
+        // Attempt to refund all successful losers
+        for (const refundedLoserUid of successfulLosers) {
+          const loserCoinsRef = ref(db, `coins/${refundedLoserUid}`);
+          try {
+            await runTransaction(loserCoinsRef, (currentCoins) => {
+              const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+              console.log(`[TXN Loser ${refundedLoserUid}] REFUNDING ${betAmount}. New balance: ${coins + betAmount}`);
+              return coins + betAmount;
+            });
+            console.log(`Successfully refunded ${betAmount} to loser ${refundedLoserUid}.`);
+          } catch (refundError) {
+            console.error(`CRITICAL: FAILED TO REFUND LOSER ${refundedLoserUid} after winner transaction failure. Amount: ${betAmount}. Error:`, refundError);
+          }
+        }
       }
-    } else {
-      console.log(`Loser deduction transaction failed or aborted for ${loserUid}. No coins transferred.`);
+    } catch (error) {
+      console.error(`Failed to add coins to winner ${winnerUid}:`, error);
+      // Also attempt to refund if this block fails
+        for (const refundedLoserUid of successfulLosers) {
+          const loserCoinsRef = ref(db, `coins/${refundedLoserUid}`);
+          try {
+            await runTransaction(loserCoinsRef, (currentCoins) => {
+              const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+              return coins + betAmount;
+            });
+          } catch (refundError) {
+             console.error(`CRITICAL: FAILED TO REFUND LOSER ${refundedLoserUid} (after winner main catch). Error:`, refundError);
+          }
+        }
     }
-
-  } catch (error) {
-    console.error("Coin transfer process failed:", error);
+  } else {
+    console.log("No winnings to transfer as no loser deductions were successful.");
   }
 };
 

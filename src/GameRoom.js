@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
 import { useParams, useNavigate } from 'react-router-dom';
-import { ref, onValue, update, remove, get } from 'firebase/database'; // Added get
+import { ref, onValue, update, remove, get, set } from 'firebase/database'; // Added get, set
 import { canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, transferBetCoins, setUserCoins, getUserCoins, db, fetchUserCoins } from './Util'; // Added fetchUserCoins, removed unused getUserCoins
 // import DominoDots from './DominoDots'; // Removed unused import
 import AIPlayer from './AIPlayer';
@@ -145,7 +145,8 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           }
   
           // Update game state
-          const nextPlayerIndex = 0; // Back to human player
+          const playerCount = gameData.gameState.playerCount || (gameData.players.player3 && gameData.players.player3.connected && gameData.players.player3.tiles && gameData.players.player3.tiles.length > 0 ? 3 : 2);
+          const nextPlayerIndex = playerCount === 3 ? 2 : 0; // If 3 players, AI (P1 index) passes to P3 (index 2), else to P1 (index 0)
           let winner = null;
           let message = "";
   
@@ -173,11 +174,20 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             // Transfer coins if it's a bet game
             if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
               const winnerUid = gameData.players[winner]?.uid;
-              const loser = winner === 'player1' ? 'player2' : 'player1';
-              const loserUid = gameData.players[loser]?.uid;
-              if (winnerUid && loserUid) {
+              const loserUids = [];
+              if (winner === 'player1') {
+                if (gameData.players.player2?.uid) loserUids.push(gameData.players.player2.uid);
+                if (gameData.players.player3?.uid) loserUids.push(gameData.players.player3.uid);
+              } else if (winner === 'player2') {
+                if (gameData.players.player1?.uid) loserUids.push(gameData.players.player1.uid);
+                if (gameData.players.player3?.uid) loserUids.push(gameData.players.player3.uid);
+              } else if (winner === 'player3') {
+                if (gameData.players.player1?.uid) loserUids.push(gameData.players.player1.uid);
+                if (gameData.players.player2?.uid) loserUids.push(gameData.players.player2.uid);
+              }
+              if (winnerUid && loserUids.length > 0) {
                 (async () => {
-                  await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                  await transferBetCoins(winnerUid, loserUids.filter(uid => uid !== winnerUid), gameData.gameState.betAmount);
                 })();
               }
             }
@@ -193,7 +203,10 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   
           // Check if the drawn tile can be played
           const { canPlay } = canPlayTile(drawnTile, board);
-          const nextPlayerIndex = canPlay ? 1 : 0; // Stay AI's turn if can play, otherwise human's turn
+          const playerCount = gameData.gameState.playerCount || (gameData.players.player3 && gameData.players.player3.connected && gameData.players.player3.tiles && gameData.players.player3.tiles.length > 0 ? 3 : 2);
+          // AI is player index 1. If AI can't play drawn tile, turn passes.
+          // If 2 players, passes to 0. If 3 players, passes to 2.
+          const nextPlayerIndex = canPlay ? 1 : (playerCount === 3 ? 2 : 0);
   
           const message = canPlay ?
             `${gameData.players?.player2?.name} ${text.canPlay}` :
@@ -210,30 +223,47 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   
         } else {
           // AI passes
+          const playerCount = gameData.gameState.playerCount || (gameData.players.player3 && gameData.players.player3.connected && gameData.players.player3.tiles && gameData.players.player3.tiles.length > 0 ? 3 : 2);
           await update(ref(db, `games/${roomId}/gameState`), { // Use imported db
-            currentPlayerIndex: 0, // Back to human player
+            currentPlayerIndex: playerCount === 3 ? 2 : 0, // AI (player index 1) passes. If 3 players, turn to player index 2. Else to player index 0.
             message: `${gameData.players?.player2?.name} ${text.passes}`
           });
   
-          // Check if both players are blocked
-          const humanBlocked = isPlayerBlocked(gameData.players?.player1?.tiles || [], board);
-          if (humanBlocked) {
-            // Game is deadlocked - determine winner by remaining pip count
-            const p1Points = (gameData.players?.player1?.tiles || []).reduce((sum, tile) => sum + tile.left + tile.right, 0);
-            const p2Points = (gameData.players?.player2?.tiles || []).reduce((sum, tile) => sum + tile.left + tile.right, 0);
-  
+          // Check if all active players are blocked (AI just passed, so it's blocked)
+          const p1Tiles = gameData.players?.player1?.tiles || [];
+          const p1Blocked = isPlayerBlocked(p1Tiles, board);
+          let p3Blocked = true; // Assume blocked if not present or no tiles
+          let p3Points = Infinity;
+          const player3Exists = gameData.players?.player3 && gameData.players.player3.connected && gameData.players.player3.tiles;
+
+          if (player3Exists) {
+            const p3Tiles = gameData.players.player3.tiles || [];
+            p3Blocked = isPlayerBlocked(p3Tiles, board);
+            p3Points = p3Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          }
+
+          if (p1Blocked && p3Blocked) { // AI (player2) is already known to be blocked here
+            const p1Points = p1Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+            const p2Points = (gameData.players?.player2?.tiles || []).reduce((sum, tile) => sum + tile.left + tile.right, 0); // AI points
+
             let winner, message;
-            if (p1Points < p2Points) {
-              winner = "player1";
-              message = `${gameData.players?.player1?.name} ${text.winsLowPoints}`;
-            } else if (p2Points < p1Points) {
-              winner = "player2";
-              message = `${gameData.players?.player2?.name} ${text.winsLowPoints}`;
-            } else {
+            const points = [{player: "player1", score: p1Points}, {player: "player2", score: p2Points}];
+            if (player3Exists) {
+              points.push({player: "player3", score: p3Points});
+            }
+            points.sort((a, b) => a.score - b.score);
+
+            if (points.length > 1 && points[0].score === points[1].score && (!points[2] || points[0].score < points[2].score)) {
+              winner = "tie"; // Tie between first two if they have same lowest score
+              message = text.gameTied;
+            } else if (points[0].score < (points[1] ? points[1].score : Infinity)) {
+              winner = points[0].player;
+              message = `${gameData.players?.[winner]?.name} ${text.winsLowPoints}`;
+            } else { // Should ideally be a tie if all have same points or other unhandled scenarios
               winner = "tie";
               message = text.gameTied;
             }
-  
+            
             const deadlockUpdates = {
               winner: winner,
               status: "finished",
@@ -248,11 +278,13 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
               // Transfer coins if it's a bet game
               if (gameData.gameState.betAmount && gameData.gameState.betAmount > 0) {
                 const winnerUid = gameData.players[winner]?.uid;
-                const loser = winner === 'player1' ? 'player2' : 'player1';
-                const loserUid = gameData.players[loser]?.uid;
-                if (winnerUid && loserUid) {
+                const loserUids = [];
+                const playerKeys = Object.keys(gameData.players).filter(pKey => gameData.players[pKey]?.uid && gameData.players[pKey].uid !== winnerUid);
+                playerKeys.forEach(pKey => loserUids.push(gameData.players[pKey].uid));
+
+                if (winnerUid && loserUids.length > 0) {
                   (async () => {
-                    await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                    await transferBetCoins(winnerUid, loserUids, gameData.gameState.betAmount);
                   })();
                 }
               }
@@ -291,42 +323,82 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           setPlayerNumber('player1');
         } else if (data.players.player2 && data.players.player2.uid === user.uid) {
           setPlayerNumber('player2');
-        } else if (data.players.player2 && !data.players.player2.connected && data.gameState.status !== 'finished') { // Added status check
-          // Auto-join as player2 if spot is open and game not finished
-          (async () => {
-            // Fetch player 2's current coins
-            const player2Coins = await fetchUserCoins(user.uid);
-            let currentCoins = player2Coins;
+        } else if (data.players.player3 && data.players.player3.uid === user.uid) {
+          setPlayerNumber('player3');
+        } else {
+          // Attempt to auto-join as player2 if spot is open
+          if (data.players.player1 && data.players.player1.uid !== user.uid &&
+              data.players.player2 && !data.players.player2.connected &&
+              data.gameState.status !== 'finished' && data.gameState.status !== 'waiting') { // Ensure game is active
+            (async () => {
+              const player2Coins = await fetchUserCoins(user.uid);
+              let currentCoins = player2Coins;
+              if (typeof player2Coins !== 'number' || player2Coins < 0) {
+                await setUserCoins(user.uid, 100); currentCoins = 100;
+              }
+              const betAmount = data?.gameState?.betAmount || 0;
+              if (betAmount > 0 && currentCoins < betAmount) {
+                alert(`لا يمكنك الانضمام لهذه اللعبة تلقائيًا كلاعب ثاني. الرهان هو ${betAmount} عملة، ولديك ${currentCoins} فقط.`);
+                navigate('/'); return;
+              }
+              console.log(`Auto-joining player ${user.uid} as Player 2 in room ${roomId}`);
+              // Ensure player2 object exists or create it
+              const p2Updates = { name: user.displayName || 'Player 2', uid: user.uid, connected: true, score: data.players.player2?.score || 0, tiles: data.players.player2?.tiles || [] };
+              if (!data.players.player2) { // If player2 object doesn't exist at all
+                await set(ref(db, `games/${roomId}/players/player2`), p2Updates);
+              } else {
+                await update(ref(db, `games/${roomId}/players/player2`), p2Updates);
+              }
+              await update(ref(db, `games/${roomId}/gameState`), { status: 'playing', lastActive: Date.now() });
+              setPlayerNumber('player2');
+            })();
+          }
+          // Attempt to auto-join as player3 if player1 and player2 are present and player3 spot is open
+          else if (data.players.player1 && data.players.player1.connected && data.players.player1.uid !== user.uid &&
+                   data.players.player2 && data.players.player2.connected && data.players.player2.uid !== user.uid &&
+                   (!data.players.player3 || !data.players.player3.connected) &&
+                   data.gameState.status === 'playing') {
+            // Ensure player3 slot is truly available for this user
+            if (!data.players.player3 || !data.players.player3.uid || data.players.player3.uid === user.uid) {
+              (async () => {
+                console.log(`User ${user.uid} attempting to join as Player 3 in room ${roomId}`);
+                const player3Name = user.displayName || `Player 3`;
+                
+                const betAmount = data?.gameState?.betAmount || 0;
+                if (betAmount > 0) {
+                    const player3Coins = await fetchUserCoins(user.uid);
+                    let currentCoins = player3Coins;
+                    if (typeof player3Coins !== 'number' || player3Coins < 0) {
+                        await setUserCoins(user.uid, 100); currentCoins = 100;
+                    }
+                    if (currentCoins < betAmount) {
+                        alert(`${player3Name}, لا يمكنك الانضمام لهذه اللعبة كلاعب ثالث. الرهان هو ${betAmount} عملة، ولديك ${currentCoins} فقط.`);
+                        return;
+                    }
+                }
+                
+                if (!data.gameState.boneyard || data.gameState.boneyard.length < 7) {
+                    console.log(`Player ${user.uid} cannot join as Player 3: Not enough tiles in boneyard.`);
+                    alert(`${player3Name}, لا يمكن الانضمام كلاعب ثالث، لا توجد قطع كافية في السحب.`);
+                    return;
+                }
 
-            // Initialize if needed
-            if (typeof player2Coins !== 'number' || player2Coins < 0) {
-                console.log(`Initializing coins for player 2 (${user.uid}) on auto-join`);
-                await setUserCoins(user.uid, 100); // Set default 100 coins
-                currentCoins = 100; // Use the initialized value for the check
+                const p3Updates = {
+                  name: player3Name,
+                  uid: user.uid,
+                  connected: true,
+                  score: 0, // Initialize score for player3
+                  tiles: [], // Initialize tiles, will be dealt by the new useEffect
+                  fully_joined_and_dealt: false // Initialize flag
+                };
+
+                // Use set to create player3 if it doesn't exist, or update if it does (e.g., was placeholder)
+                await set(ref(db, `games/${roomId}/players/player3`), p3Updates);
+                // gameState updates (like playerCount) will be handled by the tile dealing useEffect for consistency
+                setPlayerNumber('player3');
+              })();
             }
-
-            // Check if player 2 has enough coins for the bet
-            const betAmount = data?.gameState?.betAmount || 0;
-            if (betAmount > 0 && currentCoins < betAmount) {
-                console.log(`Player ${user.uid} cannot auto-join room ${roomId} due to insufficient coins for bet ${betAmount}.`);
-                alert(`لا يمكنك الانضمام لهذه اللعبة تلقائيًا. الرهان هو ${betAmount} عملة، ولديك ${currentCoins} فقط. (Cannot auto-join this game. The bet is ${betAmount} coins, and you only have ${currentCoins}.)`);
-                navigate('/'); // Redirect to home
-                return; // Stop the auto-join process
-            }
-
-            // Proceed with auto-joining if enough coins
-            console.log(`Auto-joining player ${user.uid} to room ${roomId}`);
-            await update(ref(db, `games/${roomId}/players/player2`), {
-              name: user.displayName || '',
-              uid: user.uid,
-              connected: true
-            });
-            await update(ref(db, `games/${roomId}/gameState`), {
-              status: 'playing',
-              lastActive: Date.now() // Update activity on join
-            });
-            setPlayerNumber('player2');
-          })();
+          }
         }
       }
 
@@ -358,7 +430,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     
     // Clean up subscription on unmount
     return () => unsubscribe();
-  }, [roomId, user, handleAIMove]); // Added handleAIMove dependency
+  }, [roomId, user, handleAIMove, navigate, text, db]); // Added navigate, text, db
   
   useEffect(() => {
     // Auto-scroll board on small devices when board changes
@@ -399,28 +471,90 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     };
   }, [roomId]); // Removed database from dependency array
 
-  useEffect(() => {
-    // Check for deadlock (no one can play and boneyard is empty)
-    if (game && !game.gameState.winner && game.gameState.status !== 'waiting' && game.gameState.status !== 'finished') {
-      const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
-      const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
-      const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
-      if (p1Blocked && p2Blocked && boneyardEmpty) {
-        // Calculate points
-        const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-        const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-        let winnerBlocked, messageBlocked;
-        if (p1Points < p2Points) {
-          winnerBlocked = "player1";
-          messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
-        } else if (p2Points < p1Points) {
-          winnerBlocked = "player2";
-          messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
+useEffect(() => {
+    // Deal tiles to player3 if they've connected, have no tiles, and haven't been dealt yet
+    if (game && game.players && game.players.player3 && game.players.player3.connected &&
+        (!game.players.player3.tiles || game.players.player3.tiles.length === 0) &&
+        !game.players.player3.fully_joined_and_dealt && // Prevent re-dealing
+        game.gameState && game.gameState.boneyard && game.gameState.boneyard.length >= 7 &&
+        game.gameState.status === 'playing') {
+
+      (async () => {
+        const gameRef = ref(db, `games/${roomId}`);
+        // Read the latest game state to prevent race conditions
+        const snapshot = await get(gameRef);
+        const currentGameData = snapshot.val();
+
+        // Double-check conditions with the fresh data
+        if (currentGameData && currentGameData.players && currentGameData.players.player3 &&
+            currentGameData.players.player3.connected &&
+            (!currentGameData.players.player3.tiles || currentGameData.players.player3.tiles.length === 0) &&
+            !currentGameData.players.player3.fully_joined_and_dealt &&
+            currentGameData.gameState && currentGameData.gameState.boneyard && currentGameData.gameState.boneyard.length >= 7 &&
+            currentGameData.gameState.status === 'playing') {
+
+            console.log(`Dealing 7 tiles to Player 3 (${currentGameData.players.player3.name || 'Player 3'})`);
+            const player3Tiles = currentGameData.gameState.boneyard.slice(0, 7);
+            const updatedBoneyard = currentGameData.gameState.boneyard.slice(7);
+            
+            const updates = {
+              [`players/player3/tiles`]: player3Tiles,
+              [`players/player3/fully_joined_and_dealt`]: true,
+              [`gameState/boneyard`]: updatedBoneyard,
+              [`gameState/message`]: `${currentGameData.players.player3.name || 'Player 3'} ${text.hasJoinedAndDrawn || 'has joined and drawn 7 tiles!'}`,
+              [`gameState/playerCount`]: 3, // Set player count to 3
+            };
+            await update(gameRef, updates);
         } else {
-          winnerBlocked = "tie";
-          messageBlocked = text.gameTied;
+          console.log("Player 3 tile dealing conditions no longer met after fetching fresh data.");
         }
-        // Only update if not already set
+      })();
+    }
+  }, [game, roomId, text, db]); // Dependencies
+  useEffect(() => {
+    // Check for deadlock (all active players can't play and boneyard is empty)
+    if (game && !game.gameState.winner && game.gameState.status !== 'waiting' && game.gameState.status !== 'finished') {
+      const p1Tiles = game.players.player1?.tiles || [];
+      const p2Tiles = game.players.player2?.tiles || [];
+      const p1Blocked = isPlayerBlocked(p1Tiles, game.gameState.board);
+      const p2Blocked = isPlayerBlocked(p2Tiles, game.gameState.board);
+      
+      let p3Blocked = true; // Assume blocked if not participating
+      let p3Points = Infinity;
+      const player3Exists = game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0;
+
+      if (player3Exists) {
+        const p3Tiles = game.players.player3.tiles;
+        p3Blocked = isPlayerBlocked(p3Tiles, game.gameState.board);
+      }
+
+      const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
+
+      if (p1Blocked && p2Blocked && p3Blocked && boneyardEmpty) {
+        const p1Points = p1Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        const p2Points = p2Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        if (player3Exists) {
+          p3Points = game.players.player3.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        }
+
+        let winnerBlocked, messageBlocked;
+        const points = [{player: "player1", score: p1Points}, {player: "player2", score: p2Points}];
+        if (player3Exists) {
+          points.push({player: "player3", score: p3Points});
+        }
+        points.sort((a, b) => a.score - b.score);
+
+        if (points.length > 1 && points[0].score === points[1].score && (!points[2] || points[0].score < points[2].score)) {
+            winnerBlocked = "tie";
+            messageBlocked = text.gameTied;
+        } else if (points[0].score < (points[1] ? points[1].score : Infinity)) {
+            winnerBlocked = points[0].player;
+            messageBlocked = `${game.players?.[winnerBlocked]?.name} ${text.winsLowPoints}`;
+        } else {
+            winnerBlocked = "tie";
+            messageBlocked = text.gameTied;
+        }
+        
         const deadlockUpdates = {
           winner: winnerBlocked,
           status: "finished",
@@ -431,13 +565,18 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
           updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
           // Transfer coins if it's a bet game
-          if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+          if (game.gameState.betAmount && game.gameState.betAmount > 0 && winnerBlocked !== "tie") {
             const winnerUid = game.players[winnerBlocked]?.uid;
-            const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
-            const loserUid = game.players[loser]?.uid;
-            if (winnerUid && loserUid) {
+            const loserUids = [];
+            const allPlayerKeys = ['player1', 'player2', 'player3'];
+            allPlayerKeys.forEach(pKey => {
+              if (pKey !== winnerBlocked && game.players[pKey]?.uid) {
+                loserUids.push(game.players[pKey].uid);
+              }
+            });
+            if (winnerUid && loserUids.length > 0) {
               (async () => {
-                await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                await transferBetCoins(winnerUid, loserUids, game.gameState.betAmount);
               })();
             }
           }
@@ -516,7 +655,10 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   const handleTileSelect = (tile, index) => {
     // Only allow selecting tile if it's your turn
     if (!game) return;
-    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    const playerIndexMap = ['player1', 'player2', 'player3'];
+    if (game.gameState.currentPlayerIndex >= playerIndexMap.length) return; // Safety
+    const currentPlayerNumber = playerIndexMap[game.gameState.currentPlayerIndex];
+
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(text.notYourTurn);
       return;
@@ -542,7 +684,8 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     } else {
       updatedBoard.push(playedTile);
     }
-    const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
+    const playerCount = game.gameState.playerCount || (game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0 ? 3 : 2);
+    const nextPlayerIndex = (game.gameState.currentPlayerIndex + 1) % playerCount;
     let winner = null;
     let message = "";
     if (updatedPlayerTiles.length === 0) {
@@ -564,13 +707,18 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
         updates[`gameState/scores/${winner}`] = currentScore + 1;
         updateLeaderboard(game.players?.[winner]?.name, currentScore + 1, game.players?.[winner]?.uid);
         // Transfer coins if it's a bet game
-        if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+        if (game.gameState.betAmount && game.gameState.betAmount > 0 && winner) {
           const winnerUid = game.players[winner]?.uid;
-          const loser = winner === 'player1' ? 'player2' : 'player1';
-          const loserUid = game.players[loser]?.uid;
-          if (winnerUid && loserUid) {
+          const loserUids = [];
+          const allPlayerKeys = ['player1', 'player2', 'player3'];
+          allPlayerKeys.forEach(pKey => {
+            if (pKey !== winner && game.players[pKey]?.uid) {
+              loserUids.push(game.players[pKey].uid);
+            }
+          });
+          if (winnerUid && loserUids.length > 0) {
             (async () => {
-              await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+              await transferBetCoins(winnerUid, loserUids, game.gameState.betAmount);
             })();
           }
         }
@@ -584,16 +732,41 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           updatedBoard
         );
         const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
-        if (p1Blocked && p2Blocked && boneyardEmpty) {
-          const p1Points = (playerNumber === 'player1' ? updatedPlayerTiles : game.players.player1.tiles).reduce((sum, tile) => sum + tile.left + tile.right, 0);
-          const p2Points = (playerNumber === 'player2' ? updatedPlayerTiles : game.players.player2.tiles).reduce((sum, tile) => sum + tile.left + tile.right, 0);
+
+        // Define p3Blocked and player3Exists for this scope
+        let p3Blocked = true; // Default to true (blocked)
+        const player3Exists = game.players.player3 && game.players.player3.connected && game.players.player3.tiles;
+        const p3FinalTiles = playerNumber === 'player3' ? updatedPlayerTiles : (game.players.player3?.tiles || []);
+
+        if (player3Exists) {
+          p3Blocked = isPlayerBlocked(p3FinalTiles, updatedBoard);
+        }
+
+        if (p1Blocked && p2Blocked && p3Blocked && boneyardEmpty) {
+          const p1FinalTiles = playerNumber === 'player1' ? updatedPlayerTiles : (game.players.player1?.tiles || []);
+          const p2FinalTiles = playerNumber === 'player2' ? updatedPlayerTiles : (game.players.player2?.tiles || []);
+          // p3FinalTiles is already defined above
+
+          const p1Points = p1FinalTiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          const p2Points = p2FinalTiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          let p3PointsVal = Infinity; // Use a different variable name to avoid conflict if p3Points was meant for something else
+          if (player3Exists && p3FinalTiles.length > 0) {
+            p3PointsVal = p3FinalTiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          }
+
           let winnerBlocked, messageBlocked;
-          if (p1Points < p2Points) {
-            winnerBlocked = "player1";
-            messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
-          } else if (p2Points < p1Points) {
-            winnerBlocked = "player2";
-            messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
+          const points = [{player: "player1", score: p1Points}, {player: "player2", score: p2Points}];
+          if (player3Exists) {
+            points.push({player: "player3", score: p3PointsVal});
+          }
+          points.sort((a, b) => a.score - b.score);
+
+          if (points.length > 1 && points[0].score === points[1].score && (!points[2] || points[0].score < points[2].score)) {
+            winnerBlocked = "tie";
+            messageBlocked = text.gameTied;
+          } else if (points[0].score < (points[1] ? points[1].score : Infinity)) {
+            winnerBlocked = points[0].player;
+            messageBlocked = `${game.players?.[winnerBlocked]?.name} ${text.winsLowPoints}`;
           } else {
             winnerBlocked = "tie";
             messageBlocked = text.gameTied;
@@ -606,13 +779,18 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
             updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
             // Transfer coins if it's a bet game
-            if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+            if (game.gameState.betAmount && game.gameState.betAmount > 0 && winnerBlocked !== "tie") {
               const winnerUid = game.players[winnerBlocked]?.uid;
-              const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
-              const loserUid = game.players[loser]?.uid;
-              if (winnerUid && loserUid) {
+              const loserUids = [];
+              const allPlayerKeys = ['player1', 'player2', 'player3'];
+              allPlayerKeys.forEach(pKey => {
+                if (pKey !== winnerBlocked && game.players[pKey]?.uid) {
+                  loserUids.push(game.players[pKey].uid);
+                }
+              });
+              if (winnerUid && loserUids.length > 0) {
                 (async () => {
-                  await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                  await transferBetCoins(winnerUid, loserUids, game.gameState.betAmount);
                 })();
               }
             }
@@ -642,7 +820,11 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   };
 
   const handlePlayTile = async () => {
-    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    if (!game) return;
+    const playerIndexMap = ['player1', 'player2', 'player3'];
+    if (game.gameState.currentPlayerIndex >= playerIndexMap.length) return; // Safety
+    const currentPlayerNumber = playerIndexMap[game.gameState.currentPlayerIndex];
+
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(text.notYourTurn);
       return;
@@ -662,8 +844,10 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
 
   const handleDrawTile = async () => {
     if (!game) return;
-    
-    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    const playerIndexMap = ['player1', 'player2', 'player3'];
+    if (game.gameState.currentPlayerIndex >= playerIndexMap.length) return; // Safety
+    const currentPlayerNumber = playerIndexMap[game.gameState.currentPlayerIndex];
+
     if (playerNumber !== currentPlayerNumber) {
       setGameMessage(text.notYourTurn);
       return;
@@ -675,21 +859,55 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
       // If boneyard is empty and player can't play, skip turn
       const canPlay = !isPlayerBlocked(game.players?.[playerNumber]?.tiles || [], game.gameState.board);
       if (!canPlay) {
-        const nextPlayerIndex = game.gameState.currentPlayerIndex === 0 ? 1 : 0;
-        // Check if both players are blocked and boneyard is empty
-        const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
-        const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
+        const playerCount = game.gameState.playerCount || (game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0 ? 3 : 2);
+        const nextPlayerIndex = (game.gameState.currentPlayerIndex + 1) % playerCount;
+        // Check if all active players are blocked and boneyard is empty
+        const p1Tiles = game.players.player1?.tiles || [];
+        const p2Tiles = game.players.player2?.tiles || [];
+        const p1Blocked = isPlayerBlocked(p1Tiles, game.gameState.board);
+        const p2Blocked = isPlayerBlocked(p2Tiles, game.gameState.board);
+        let p3Blocked = true; // Assume blocked if not participating
+        let p3Points = Infinity;
+        const player3Exists = game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0;
+
+        if (player3Exists) {
+          const p3TilesCurrent = game.players.player3.tiles;
+          p3Blocked = isPlayerBlocked(p3TilesCurrent, game.gameState.board);
+          p3Points = p3TilesCurrent.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        }
+        
         const boneyardEmpty = !game.gameState.boneyard || game.gameState.boneyard.length === 0;
-        if (p1Blocked && p2Blocked && boneyardEmpty) {
-          const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-          const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+        
+        // This is the corrected section from the previous failed diff for handleDrawTile deadlock
+        let p3BlockedDraw = true;
+        let p3PointsDraw = Infinity;
+        const player3ExistsCurrent = game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0;
+
+        if (player3ExistsCurrent) {
+          const p3TilesCurrent = game.players.player3.tiles;
+          p3BlockedDraw = isPlayerBlocked(p3TilesCurrent, game.gameState.board);
+          if (p3TilesCurrent.length > 0) { // Ensure tiles exist before reducing
+            p3PointsDraw = p3TilesCurrent.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          }
+        }
+
+        if (p1Blocked && p2Blocked && p3BlockedDraw && boneyardEmpty) {
+          const p1Points = p1Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+          const p2Points = p2Tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
+
           let winnerBlocked, messageBlocked;
-          if (p1Points < p2Points) {
-            winnerBlocked = "player1";
-            messageBlocked = `${game.players?.player1?.name} ${text.winsLowPoints}`;
-          } else if (p2Points < p1Points) {
-            winnerBlocked = "player2";
-            messageBlocked = `${game.players?.player2?.name} ${text.winsLowPoints}`;
+          const points = [{player: "player1", score: p1Points}, {player: "player2", score: p2Points}];
+          if (player3ExistsCurrent) {
+            points.push({player: "player3", score: p3PointsDraw});
+          }
+          points.sort((a, b) => a.score - b.score);
+
+          if (points.length > 1 && points[0].score === points[1].score && (!points[2] || points[0].score < points[2].score)) {
+            winnerBlocked = "tie";
+            messageBlocked = text.gameTied;
+          } else if (points[0].score < (points[1] ? points[1].score : Infinity)) {
+            winnerBlocked = points[0].player;
+            messageBlocked = `${game.players?.[winnerBlocked]?.name} ${text.winsLowPoints}`;
           } else {
             winnerBlocked = "tie";
             messageBlocked = text.gameTied;
@@ -704,13 +922,18 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
             updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
             // Transfer coins if it's a bet game
-            if (game.gameState.betAmount && game.gameState.betAmount > 0) {
+            if (game.gameState.betAmount && game.gameState.betAmount > 0 && winnerBlocked !== "tie") {
               const winnerUid = game.players[winnerBlocked]?.uid;
-              const loser = winnerBlocked === 'player1' ? 'player2' : 'player1';
-              const loserUid = game.players[loser]?.uid;
-              if (winnerUid && loserUid) {
+              const loserUids = [];
+              const allPlayerKeys = ['player1', 'player2', 'player3'];
+              allPlayerKeys.forEach(pKey => {
+                if (pKey !== winnerBlocked && game.players[pKey]?.uid) {
+                  loserUids.push(game.players[pKey].uid);
+                }
+              });
+              if (winnerUid && loserUids.length > 0) {
                 (async () => {
-                  await transferBetCoins(winnerUid, loserUid, game.gameState.betAmount);
+                  await transferBetCoins(winnerUid, loserUids, game.gameState.betAmount);
                 })();
               }
             }
@@ -732,8 +955,9 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     const updatedPlayerTiles = [...(game.players?.[playerNumber]?.tiles || []), drawnTile];
     // Check if the drawn tile can be played
     const { canPlay } = canPlayTile(drawnTile, game.gameState.board);
-    const nextPlayerIndex = canPlay ? game.gameState.currentPlayerIndex : 
-                         (game.gameState.currentPlayerIndex === 0 ? 1 : 0);
+    const playerCount = game.gameState.playerCount || (game.players.player3 && game.players.player3.connected && game.players.player3.tiles && game.players.player3.tiles.length > 0 ? 3 : 2);
+    const nextPlayerIndex = canPlay ? game.gameState.currentPlayerIndex :
+                           (game.gameState.currentPlayerIndex + 1) % playerCount;
 
     const message = canPlay ? 
       `${game.players?.[playerNumber]?.name} ${text.canPlay}` :
@@ -754,7 +978,9 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
 
   const isMyTurn = () => {
     if (!game || !playerNumber) return false;
-    const currentPlayerNumber = game.gameState.currentPlayerIndex === 0 ? 'player1' : 'player2';
+    const playerIndexMap = ['player1', 'player2', 'player3']; // Max 3 players
+    if (game.gameState.currentPlayerIndex >= playerIndexMap.length) return false; // Safety check
+    const currentPlayerNumber = playerIndexMap[game.gameState.currentPlayerIndex];
     return playerNumber === currentPlayerNumber;
   };
 
