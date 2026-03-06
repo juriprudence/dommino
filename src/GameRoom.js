@@ -666,7 +666,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   };
 
   const copyGameLink = () => {
-    const link = `https://elhabdomino.fun/#/room/${roomId}`;
+    const link = `https://elhabdomino.fun/invite?r=${roomId}`;
     navigator.clipboard.writeText(link)
       .then(() => {
         alert('Game link copied to clipboard!');
@@ -1073,7 +1073,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
         <div className="waiting-screen">
           <h2 className="arabic-text">{text.waiting}</h2>
           <p className="arabic-text">{text.shareLink}</p>
-          <p className="game-link">https://elhabdomino.fun/#/room/{roomId}</p>
+          <p className="game-link">https://elhabdomino.fun/invite?r={roomId}</p>
           <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
         </div>
       ) : (
