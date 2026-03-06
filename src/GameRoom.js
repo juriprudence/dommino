@@ -47,6 +47,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   const [gameMessage, setGameMessage] = useState('');
   const [aiThinking, setAiThinking] = useState(false);
   const boardAreaRef = useRef(null);
+  const lastFirstTileId = useRef(null);
   const aiRef = useRef(null);
   // const database = getDatabase(); // Use imported db instance
 
@@ -436,14 +437,31 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
   }, [roomId, user, handleAIMove, navigate, text, db]); // Added navigate, text, db
 
   useEffect(() => {
-    // Auto-scroll board on small devices when board changes
+    // Auto-scroll board when board changes
     if (game && game.gameState && game.gameState.board && boardAreaRef.current) {
-      if (window.innerWidth <= 768) {
-        // Scroll to the far right (end)
-        boardAreaRef.current.scrollLeft = boardAreaRef.current.scrollWidth;
+      const board = game.gameState.board;
+      if (board.length > 0) {
+        const firstTileId = board[0].id;
+
+        // Use a small timeout or requestAnimationFrame to ensure React has finished DOM updates
+        setTimeout(() => {
+          if (boardAreaRef.current) {
+            // If the first tile ID changed, it's a left-side expansion
+            if (lastFirstTileId.current !== null && firstTileId !== lastFirstTileId.current) {
+              boardAreaRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+              // Otherwise (right-side or first tile), scroll to the end
+              boardAreaRef.current.scrollTo({
+                left: boardAreaRef.current.scrollWidth,
+                behavior: 'smooth'
+              });
+            }
+            lastFirstTileId.current = firstTileId;
+          }
+        }, 100);
       }
     }
-  }, [game?.gameState?.board?.length]); // Simplified dependency
+  }, [game?.gameState?.board?.length]); // Auto-scroll when a new piece is added
 
   useEffect(() => {
     // Check if waiting for more than 30 minutes

@@ -363,7 +363,7 @@ h1 {
   padding: 8px 0;
   min-width: min-content;
   /* Ensure container expands to fit all tiles */
-  margin: 0 auto;
+  margin: auto;
   /* Center when there is extra space, align left when overflowing */
   box-sizing: border-box;
 }
@@ -911,16 +911,12 @@ h1 {
 /* Improve scroll on mobile */
 .board-area,
 .game-link {
-  scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* IE and Edge */
+  scrollbar-width: auto;
 }
 
-.board-area::-webkit-scrollbar,
 .game-link::-webkit-scrollbar {
   display: none;
-  /* Chrome, Safari and Opera */
+  /* Keep hidden for link only */
 }
 
 /* For dark mode support */
@@ -1741,6 +1737,7 @@ h1 {
   animation: pulse 1.5s infinite;
   margin-left: 10px;
 }
+
 .remote-streams {
   display: flex;
   gap: 10px;
@@ -1752,4 +1749,3 @@ h1 {
   display: flex;
   align-items: center;
 }
-
