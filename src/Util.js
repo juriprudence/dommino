@@ -112,7 +112,18 @@ export const arabicText = {
   seoRulesTitle: "كيفية اللعب",
   seoRulesDesc: "تتكون اللعبة من 28 قطعة. يبدأ كل لاعب بـ 7 قطع، والهدف هو التخلص من جميع القطع عبر مطابقة الأرقام على اللوحة.",
   seoVariationsTitle: "أنواع الدومينو",
-  seoVariationsDesc: "هناك عدة طرق للعب، منها 'العادية' و'المغلقة'، وتتميز اللعبة بتنوع قوانينها حسب المناطق الجغرافية."
+  seoVariationsDesc: "هناك عدة طرق للعب، منها 'العادية' و'المغلقة'، وتتميز اللعبة بتنوع قوانينها حسب المناطق الجغرافية.",
+  // Page Titles and Descriptions for SEO
+  titleHome: "لعبة الدومينو أونلاين - العب مجاناً",
+  descHome: "العب الدومينو أونلاين مجاناً مع أصدقائك أو ضد الذكاء الاصطناعي. أفضل تجربة لعبة دومينو عربية.",
+  titleLobby: "قاعة الانتظار - العاب الدومينو المتاحة",
+  descLobby: "انضم إلى غرف الدومينو المتاحة أو أنشئ غرفتك الخاصة وتحدى اللاعبين أونلاين.",
+  titleBestPlayer: "لوحة المتصدرين - أفضل لاعبي الدومينو",
+  descBestPlayer: "شاهد قائمة أفضل اللاعبين وأعلى النقاط في عالم الدومينو العربي.",
+  titleAbout: "من نحن - قصة لعبة الدومينو",
+  titleContact: "اتصل بنا - الدعم الفني للدومينو",
+  titlePrivacy: "سياسة الخصوصية",
+  titleTerms: "شروط الخدمة"
 };
 
 // Placeholder English translations (replace with actual text)
@@ -226,7 +237,18 @@ const englishText = {
   seoRulesTitle: "How to Play",
   seoRulesDesc: "The game consists of 28 tiles. Each player starts with 7 tiles, and the goal is to empty your hand by matching numbers on the board.",
   seoVariationsTitle: "Variations",
-  seoVariationsDesc: "There are many ways to play, including 'Block' and 'Draw' games, with rules varying by region."
+  seoVariationsDesc: "There are many ways to play, including 'Block' and 'Draw' games, with rules varying by region.",
+  // Page Titles and Descriptions for SEO
+  titleHome: "Domino Game Online - Play for Free",
+  descHome: "Play Dominoes online for free with friends or against AI. The best Arabic domino game experience.",
+  titleLobby: "Game Lobby - Available Domino Rooms",
+  descLobby: "Join available domino rooms or create your own and challenge players online.",
+  titleBestPlayer: "Leaderboard - Top Domino Players",
+  descBestPlayer: "View the list of top players and highest scores in the global domino leaderboard.",
+  titleAbout: "About Us - The Domino Story",
+  titleContact: "Contact Us - Technical Support",
+  titlePrivacy: "Privacy Policy",
+  titleTerms: "Terms of Service"
 };
 
 // Placeholder French translations (replace with actual text)
@@ -340,7 +362,18 @@ const frenchText = {
   seoRulesTitle: "Comment Jouer",
   seoRulesDesc: "Le jeu se compose de 28 dominos. Chaque joueur commence avec 7 dominos, l'objectif est de vider sa main.",
   seoVariationsTitle: "Variations",
-  seoVariationsDesc: "Il existe de nombreuses façons de jouer, y compris le 'Bloque' et le 'Tirage'."
+  seoVariationsDesc: "Il existe de nombreuses façons de jouer, y compris le 'Bloque' et le 'Tirage'.",
+  // Page Titles and Descriptions for SEO
+  titleHome: "Jeu de Domino en Ligne - Jouez Gratuitement",
+  descHome: "Jouez aux dominos en ligne gratuitement avec des amis ou contre l'IA. La meilleure expérience de jeu de domino arabe.",
+  titleLobby: "Salon de Jeu - Salles de Domino Disponibles",
+  descLobby: "Rejoignez les salles de domino disponibles ou créez la vôtre et défiez des joueurs en ligne.",
+  titleBestPlayer: "Classement - Meilleurs Joueurs de Domino",
+  descBestPlayer: "Consultez la liste des meilleurs joueurs et les scores les plus élevés du classement mondial de domino.",
+  titleAbout: "À Propos - L'Histoire du Domino",
+  titleContact: "Contactez-nous - Support Technique",
+  titlePrivacy: "Politique de Confidentialité",
+  titleTerms: "Conditions d'Utilisation"
 };
 
 // Combine all translations

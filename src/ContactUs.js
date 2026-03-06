@@ -4,15 +4,15 @@ const ContactUs = ({ text, language }) => {
     return (
         <div className="page-container" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             <h1>{text.contactTitle}</h1>
-            <div className="content-section">
+            <section className="content-section">
                 <p>If you have any questions, feedback, or need support with your account or game experience, feel free to contact us.</p>
-                <div className="contact-info">
+                <address className="contact-info" style={{ fontStyle: 'normal' }}>
                     <h3>Email Support</h3>
-                    <p>support@elhabdomino.fun</p>
+                    <p><a href="mailto:support@elhabdomino.fun">support@elhabdomino.fun</a></p>
                     <h3>Response Time</h3>
                     <p>We typically respond within 24-48 hours during business days.</p>
-                </div>
-            </div>
+                </address>
+            </section>
             <style>{`
         .page-container {
           padding: 2rem;

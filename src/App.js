@@ -77,6 +77,47 @@ function App() {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // SEO: Dynamic Title and Description
+    useEffect(() => {
+      let pageTitle = text.titleHome || text.gameTitle;
+      let pageDesc = text.descHome || text.seoIntro;
+
+      const path = location.pathname;
+      if (path === '/lobby') {
+        pageTitle = text.titleLobby;
+        pageDesc = text.descLobby;
+      } else if (path === '/best-player') {
+        pageTitle = text.titleBestPlayer;
+        pageDesc = text.descBestPlayer;
+      } else if (path === '/about') {
+        pageTitle = text.titleAbout;
+      } else if (path === '/contact') {
+        pageTitle = text.titleContact;
+      } else if (path === '/privacy') {
+        pageTitle = text.titlePrivacy;
+      } else if (path === '/terms') {
+        pageTitle = text.titleTerms;
+      } else if (path.startsWith('/room/')) {
+        pageTitle = `${text.roomId}: ${path.split('/')[2]} - ${text.gameTitle}`;
+      }
+
+      document.title = pageTitle;
+
+      // Update meta description
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', pageDesc);
+      }
+
+      // Update og:title and og:description
+      let ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', pageTitle);
+
+      let ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', pageDesc);
+
+    }, [location, language, text]);
+
     // If user is not logged in
     if (!user) {
       // If trying to access a game room, redirect to login with room info
@@ -96,6 +137,8 @@ function App() {
             <span className="header-user-info">{text.welcome}, {user.displayName || user.email || text.guest}! {text.coins}: {coins}</span>
             <div className="coin-display">
               <svg className="coin-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <title>Coin Icon</title>
+                <desc>Representation of the player's coin balance</desc>
                 <circle cx="256" cy="256" r="240" fill="#FFC107" stroke="#F57C00" strokeWidth="20" />
                 <path d="M280 348V164c30 5 47 24 47 45h42c0-45-35-76-89-85v-26h-44v26c-54 9-89 40-89 85 0 46 35 72 89 81v84c-30-5-47-24-47-45h-42c0 45 35 76 89 85v26h44v-26c54-9 89-40 89-85 0-46-35-72-89-81zm-44-124c-30-9-45-23-45-46 0-21 17-40 45-45v91zm44 124v-91c30 9 45 23 45 46 0 21-17 40-45 45z" fill="#FFD54F" />
               </svg>
