@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
 import { useParams, useNavigate } from 'react-router-dom';
 import { ref, onValue, update, remove, get, set } from 'firebase/database'; // Added get, set
-import { canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, transferBetCoins, setUserCoins, getUserCoins, db, fetchUserCoins } from './Util'; // Added fetchUserCoins, removed unused getUserCoins
+import { canPlayTile, isPlayerBlocked, updateLeaderboard, fetchLeaderboard, transferBetCoins, setUserCoins, getUserCoins, db, fetchUserCoins, generateDominoTiles, shuffleTiles } from './Util'; // Added generateDominoTiles, shuffleTiles
 import DominoDots from './DominoDots';
 import AIPlayer from './AIPlayer';
 import WinnerDisplay from './WinnerDisplay';
@@ -986,9 +986,46 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
 
   const startNewGame = async () => {
     try {
-      navigate('/');
+      console.log("Restarting game in the same room...");
+      const tiles = generateDominoTiles();
+      const shuffledTiles = shuffleTiles(tiles);
+
+      const player1Tiles = shuffledTiles.slice(0, 7);
+      const player2Tiles = shuffledTiles.slice(7, 14);
+      const boneyard = shuffledTiles.slice(14);
+
+      const updates = {
+        'gameState/status': 'playing',
+        'gameState/currentPlayerIndex': 0,
+        'gameState/board': [],
+        'gameState/boneyard': boneyard,
+        'gameState/winner': null,
+        'gameState/message': `${game.players.player1.name} ${text.goesFirst || 'starts the game'}`,
+        'gameState/timestamp': Date.now(),
+        'gameState/lastActive': Date.now(),
+        'players/player1/tiles': player1Tiles,
+        'players/player2/tiles': player2Tiles,
+      };
+
+      // Handle player3 if they were part of the game
+      if (game.players.player3 && game.players.player3.connected) {
+        if (shuffledTiles.length >= 21) {
+          updates['players/player3/tiles'] = shuffledTiles.slice(14, 21);
+          updates['gameState/boneyard'] = shuffledTiles.slice(21);
+          updates['players/player3/fully_joined_and_dealt'] = true;
+          updates['gameState/playerCount'] = 3;
+        }
+      } else {
+        updates['gameState/playerCount'] = 2;
+      }
+
+      await update(ref(db, `games/${roomId}`), updates);
+      setGameMessage(""); // Clear any game messages
+      setSelectedTile(null);
+      setDirectionChoice(null);
+
     } catch (error) {
-      console.error("Error starting new game:", error);
+      console.error("Error restarting game:", error);
       setError(text.failedToStartNewGame);
     }
   };
