@@ -2,14 +2,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
 
 :root {
-  --primary-color: #a83232;
-  --secondary-color: #e6cbab;
-  --dark-color: #453220;
-  --light-color: #f9f3e6;
-  --domino-dark: #252525;
-  --domino-light: #f5f5f5;
-  --domino-dot: #e02020;
-  --button-hover: #d44040;
+  --primary-color: #8b1e1e;
+  --secondary-color: #d4a76a;
+  --dark-color: #2c1e14;
+  --light-color: #fdfaf5;
+  --domino-dark: #1a1a1a;
+  --domino-light: #fefefc;
+  /* Ivory/Bone white */
+  --domino-dot: #1a1a1a;
+  --button-hover: #a62a2a;
+  --felt-green: #1b4d3e;
+  --felt-green-light: #235c4b;
+  --wood-brown: #3d2b1f;
+  --ivory-shadow: rgba(0, 0, 0, 0.15);
+  --accent-gold: #c5a059;
 }
 
 * {
@@ -19,21 +25,35 @@
 }
 
 body {
-  font-family: 'Noto Sans Arabic', Arial, Helvetica, sans-serif;
-  background: linear-gradient(135deg, #e6cbab 0%, #f9f3e6 100%);
-  color: var(--dark-color);
-  line-height: 1.7;
-  font-size: 17px;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(circle, var(--felt-green-light) 0%, var(--felt-green) 100%);
+  background-attachment: fixed;
+  color: var(--light-color);
+  line-height: 1.6;
+  font-size: 16px;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: -1;
 }
 
 ::-webkit-scrollbar {
   width: 8px;
   background: #eee;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #d7b899;
   border-radius: 6px;
@@ -41,13 +61,12 @@ body {
 
 .App {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 20px 10px 30px 10px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.92);
-  box-shadow: 0 4px 32px rgba(80,40,20,0.08);
-  min-height: 90vh;
+  padding: 10px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .arabic-text {
@@ -61,11 +80,13 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 80vh;
-  padding: 15px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  margin-top: 10px;
+  padding: 30px;
+  background: rgba(44, 30, 20, 0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  margin-top: 20px;
+  border: 1px solid rgba(197, 160, 89, 0.2);
 }
 
 .domino-logo {
@@ -74,13 +95,14 @@ body {
 
 .logo-domino {
   display: flex;
-  width: 160px;
-  height: 80px;
-  background-color: var(--domino-dark);
-  border-radius: 10px;
+  width: 140px;
+  height: 70px;
+  background-color: var(--domino-light);
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--ivory-shadow);
 }
 
 .logo-domino::after {
@@ -89,17 +111,19 @@ body {
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 4px;
-  background-color: var(--light-color);
-  opacity: 0.7;
+  width: 2px;
+  background-color: var(--domino-dark);
+  opacity: 0.2;
 }
 
 h1 {
-  color: var(--primary-color);
-  font-size: 2.5rem;
+  color: var(--secondary-color);
+  font-size: 3rem;
   text-align: center;
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
 .start-game-form {
@@ -131,56 +155,80 @@ h1 {
   font-weight: bold;
 }
 
-.start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
-  background: linear-gradient(90deg, var(--primary-color) 60%, var(--dark-color) 100%);
+.start-game-button,
+.copy-link-button,
+.play-button,
+.draw-button,
+.join-button,
+.new-game-button,
+.return-home-button {
+  background: linear-gradient(180deg, var(--primary-color) 0%, #6e1717 100%);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 16px 28px;
-  border-radius: 12px;
-  font-size: 1.07rem;
+  border-radius: 14px;
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-  font-family: 'Noto Sans Arabic', Arial, Helvetica, sans-serif;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-family: 'Noto Sans Arabic', sans-serif;
   width: 100%;
-  box-shadow: 0 4px 16px rgba(168, 50, 50, 0.09);
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  min-height: 50px;
-  letter-spacing: 0.02em;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3), inset 0 2px 3px rgba(255, 255, 255, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
 }
 
-.start-game-button:hover, .copy-link-button:hover, .play-button:hover, .draw-button:hover, .join-button:hover, .new-game-button:hover, .return-home-button:hover {
-  background-color: var(--button-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+.start-game-button:hover,
+.copy-link-button:hover,
+.play-button:hover,
+.draw-button:hover,
+.join-button:hover,
+.new-game-button:hover,
+.return-home-button:hover {
+  background: linear-gradient(180deg, var(--button-hover) 0%, var(--primary-color) 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 0.3);
 }
 
-.start-game-button:active, .copy-link-button:active, .play-button:active, .draw-button:active, .join-button:active, .new-game-button:active, .return-home-button:active {
+.start-game-button:active,
+.copy-link-button:active,
+.play-button:active,
+.draw-button:active,
+.join-button:active,
+.new-game-button:active,
+.return-home-button:active {
   transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .game-room {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 20px;
-  padding: 15px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  direction: rtl;
+  background: rgba(44, 30, 20, 0.4);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
   text-align: right;
+  border: 1px solid rgba(197, 160, 89, 0.2);
+  margin-top: 20px;
+  /* Removed direction: rtl to allow natural layout based on language */
 }
 
 .game-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: var(--light-color);
-  border-radius: 10px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.3);
 }
 
 .copy-link-button {
@@ -191,13 +239,16 @@ h1 {
 
 .game-message {
   text-align: center;
-  padding: 10px;
-  margin: 10px 0;
-  background-color: rgba(168, 50, 50, 0.1);
-  border-right: 4px solid var(--primary-color);
-  border-radius: 5px;
-  font-weight: bold;
-  word-wrap: break-word;
+  padding: 15px;
+  margin: 20px 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(139, 30, 30, 0.2) 50%, transparent 100%);
+  border-left: 4px solid var(--accent-gold);
+  border-right: 4px solid var(--accent-gold);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--secondary-color);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .waiting-screen {
@@ -234,41 +285,56 @@ h1 {
 
 .player {
   flex: 1;
-  padding: 12px;
-  background-color: var(--light-color);
-  border-radius: 10px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .player.active {
-  border: 2px solid var(--primary-color);
-  box-shadow: 0 5px 15px rgba(168, 50, 50, 0.2);
-  transform: scale(1.03);
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 20px rgba(197, 160, 89, 0.3);
+  transform: scale(1.05) translateY(-5px);
+  background: rgba(197, 160, 89, 0.1);
 }
 
 .board-area {
-  background-color: var(--dark-color);
-  padding: 0px;
-  border-radius: 15px;
-  min-height: 120px;
+  background-color: var(--felt-green);
+  padding: 40px 20px;
+  border-radius: 20px;
+  min-height: 200px;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.3);
-  margin: 0px 0;
+  box-shadow: inset 0 10px 30px rgba(0, 0, 0, 0.5), 0 5px 15px rgba(0, 0, 0, 0.2);
+  margin: 20px 0;
   overflow-x: auto;
   overflow-y: hidden;
-  color: var(--light-color);
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  direction: ltr; /* Keep domino layout left-to-right */
+  border: 8px solid var(--wood-brown);
+  position: relative;
+  direction: ltr;
+  /* Ensure domino order and alignment is consistent with game logic */
+}
+
+.board-area::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
 
 .board-tiles {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: center;
+  /* Center tiles on the board */
   align-items: center;
   gap: 0;
   padding: 8px 0;
@@ -282,28 +348,30 @@ h1 {
 /* Domino styling */
 .domino {
   display: flex;
-  background-color: var(--domino-dark);
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, var(--domino-light) 0%, #f0f0e8 100%);
+  border-radius: 6px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 1px 0 rgba(0, 0, 0, 0.2);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
-  width: 80px; /* Increased width for better aspect */
-  height: 44px; /* Increased height for better look */
-  margin: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 84px;
+  height: 46px;
+  margin: 8px;
   touch-action: manipulation;
   direction: ltr;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .domino.horizontal {
-  width: 80px;
-  height: 44px;
+  width: 84px;
+  height: 46px;
 }
 
 .domino.vertical {
   flex-direction: column;
-  width: 44px;
-  height: 80px;
+  width: 46px;
+  height: 84px;
 }
 
 .domino.flipped {
@@ -326,23 +394,26 @@ h1 {
   justify-content: center;
   align-items: center;
   position: relative;
-  background-color: var(--domino-light);
-  padding: 0 4px; /* Add horizontal padding for spacing */
+  background: transparent;
+  padding: 0 4px;
 }
 
 .domino-half:first-child {
-  border-right: 2px solid var(--domino-dark);
+  border-right: 2px solid rgba(0, 0, 0, 0.08);
 }
 
 .domino.horizontal .domino-half:first-child {
-  border-right: 2px solid var(--domino-dark);
+  border-right: 2px solid rgba(0, 0, 0, 0.08);
   border-bottom: none;
 }
 
 .domino.vertical .domino-half {
-  width: 100%; /* Ensure half takes full width in vertical layout */
-  height: 50%; /* Explicitly set height for vertical halves */
-  padding: 4px 0; /* Add vertical padding for vertical dominoes */
+  width: 100%;
+  /* Ensure half takes full width in vertical layout */
+  height: 50%;
+  /* Explicitly set height for vertical halves */
+  padding: 4px 0;
+  /* Add vertical padding for vertical dominoes */
 }
 
 .domino.vertical .domino-half:first-child {
@@ -365,14 +436,15 @@ h1 {
 }
 
 .dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   background-color: var(--domino-dot);
   border-radius: 50%;
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.6), 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
 .dots-container.empty {
-  /* Empty has no dots */
+  visibility: hidden;
 }
 
 .dots-container.one .dot.center {
@@ -482,8 +554,7 @@ h1 {
 
 .player-controls {
   margin-top: 15px;
-  direction: rtl;
-  text-align: right;
+  text-align: center;
 }
 
 .player-hand {
@@ -491,50 +562,58 @@ h1 {
 }
 
 .player-hand h3 {
-  color: var(--dark-color);
-  margin-bottom: 10px;
+  color: var(--secondary-color);
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-align: center;
 }
 
 .tiles {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-  direction: rtl;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 10px;
 }
 
 .hand-tile {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   padding: 5px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin: 5px;
-  min-height: 48px;
-  min-width: 48px; /* Ensure minimum tap target size */
+  min-height: 52px;
+  min-width: 52px;
   display: flex;
   justify-content: center;
   align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .hand-tile:hover {
-  transform: translateY(-5px);
+  transform: translateY(-10px) scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .hand-tile.selected {
-  background-color: rgba(168, 50, 50, 0.2);
-  box-shadow: 0 0 0 2px var(--primary-color);
-  transform: translateY(-5px);
+  background: rgba(197, 160, 89, 0.2);
+  box-shadow: 0 0 15px var(--accent-gold), 0 10px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-15px) scale(1.15);
+  border-color: var(--accent-gold);
 }
 
 .game-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 15px;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 25px;
   flex-wrap: wrap;
-  direction: rtl;
 }
 
-.play-button, .draw-button {
+.play-button,
+.draw-button {
   padding: 12px 20px;
   width: 45%;
   min-width: 120px;
@@ -615,10 +694,13 @@ h1 {
     padding: 10px 2vw 20px 2vw;
     min-height: 92vh;
   }
-  .home-container, .game-room {
+
+  .home-container,
+  .game-room {
     padding: 12px 3vw;
     border-radius: 10px;
   }
+
   .game-logo {
     max-width: 110px;
   }
@@ -628,19 +710,29 @@ h1 {
   body {
     font-size: 15px;
   }
+
   .App {
     max-width: 100vw;
     padding: 4px 0 12px 0;
     border-radius: 0;
     box-shadow: none;
   }
-  .home-container, .game-room {
+
+  .home-container,
+  .game-room {
     min-width: 0;
     padding: 8px 2vw;
     border-radius: 6px;
     margin-top: 6px;
   }
-  .start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
+
+  .start-game-button,
+  .copy-link-button,
+  .play-button,
+  .draw-button,
+  .join-button,
+  .new-game-button,
+  .return-home-button {
     padding: 12px 10px;
     font-size: 0.98rem;
     border-radius: 8px;
@@ -650,29 +742,29 @@ h1 {
     min-width: 0;
     overflow-x: auto;
   }
-  
+
   .players-info {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .player {
     padding: 10px;
   }
-  
+
   .player.active {
     transform: scale(1.01);
   }
-  
+
   .waiting-screen {
     padding: 15px;
   }
-  
+
   .game-link {
     font-size: 0.8rem;
     padding: 8px;
   }
-  
+
   .join-dialog {
     padding: 15px;
   }
@@ -684,50 +776,53 @@ h1 {
     width: 52px;
     height: 28px;
   }
-  
+
   .domino.horizontal {
     width: 52px;
     height: 28px;
   }
-  
+
   .domino.vertical {
     width: 28px;
     height: 52px;
   }
-  
+
   .dot {
     width: 3px;
     height: 3px;
   }
-  
+
   .game-info {
     flex-direction: column;
     text-align: center;
   }
-  
-  .game-info p, .copy-link-button {
+
+  .game-info p,
+  .copy-link-button {
     width: 100%;
     margin: 5px 0;
   }
-  
-  .player-name-input, .start-game-button, .join-button {
+
+  .player-name-input,
+  .start-game-button,
+  .join-button {
     font-size: 1rem;
     padding: 12px;
   }
-  
+
   .logo-domino {
     width: 120px;
     height: 60px;
   }
-  
+
   .board-area {
     min-height: 80px;
   }
-  
+
   h1 {
     font-size: 1.7rem;
   }
-  
+
   .hand-tile {
     padding: 3px;
     margin: 3px;
@@ -736,24 +831,35 @@ h1 {
 
 /* Fix iOS Safari height issues */
 @supports (-webkit-touch-callout: none) {
-  .home-container, .game-room {
+
+  .home-container,
+  .game-room {
     min-height: -webkit-fill-available;
   }
 }
 
 /* Make top-level containers more touch-friendly */
-.home-container, .game-room, .waiting-screen, .game-over, .join-dialog {
+.home-container,
+.game-room,
+.waiting-screen,
+.game-over,
+.join-dialog {
   touch-action: manipulation;
 }
 
 /* Improve scroll on mobile */
-.board-area, .game-link {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+.board-area,
+.game-link {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
-.board-area::-webkit-scrollbar, .game-link::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+.board-area::-webkit-scrollbar,
+.game-link::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
 }
 
 /* For dark mode support */
@@ -762,23 +868,26 @@ h1 {
     --light-color: #2b2a2a;
     --dark-color: #f5f5f5;
   }
-  
+
   body {
     background-color: #1a1a1a;
   }
-  
-  .home-container, .game-room {
+
+  .home-container,
+  .game-room {
     background-color: rgba(40, 40, 40, 0.9);
   }
-  
+
   .domino-half {
     background-color: #3d3d3d;
   }
-  
-  .game-info, .waiting-screen, .player {
+
+  .game-info,
+  .waiting-screen,
+  .player {
     background-color: #2d2d2d;
   }
-  
+
   .game-link {
     background-color: #1a1a1a;
     color: #f5f5f5;
@@ -786,11 +895,19 @@ h1 {
 }
 
 /* Prevent text selection on mobile */
-.domino, .hand-tile, .start-game-button, .copy-link-button, 
-.play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
+.domino,
+.hand-tile,
+.start-game-button,
+.copy-link-button,
+.play-button,
+.draw-button,
+.join-button,
+.new-game-button,
+.return-home-button {
   user-select: none;
   -webkit-user-select: none;
 }
+
 .game-mode-selection {
   margin: 20px 0;
   text-align: right;
@@ -854,9 +971,17 @@ h1 {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
 }
 
 /* Winner Display */
@@ -898,8 +1023,13 @@ h1 {
 }
 
 @keyframes trophy-bounce {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.1); }
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
 }
 
 /* Confetti animation */
@@ -926,6 +1056,7 @@ h1 {
     transform: translateY(-100%) rotate(0deg);
     opacity: 1;
   }
+
   100% {
     transform: translateY(1000%) rotate(720deg);
     opacity: 0;
@@ -962,27 +1093,32 @@ h1 {
   .game-mode-selection {
     padding: 0 15px;
   }
-  
+
   .winner-card {
     width: 90%;
     padding: 15px;
   }
 }
+
 /* Logo Styles */
 .logo-container {
   width: 100%;
   text-align: center;
-  margin-bottom: 20px; /* Add some space below the logo */
+  margin-bottom: 20px;
+  /* Add some space below the logo */
 }
 
 .game-logo {
-  max-width: 150px; /* Adjust size as needed */
-  height: auto; /* Maintain aspect ratio */
+  max-width: 150px;
+  /* Adjust size as needed */
+  height: auto;
+  /* Maintain aspect ratio */
   transition: transform 0.3s ease;
 }
 
 .game-logo:hover {
-  transform: scale(1.05); /* Slight zoom on hover */
+  transform: scale(1.05);
+  /* Slight zoom on hover */
 }
 
 /* Responsive adjustments for the logo */
@@ -990,8 +1126,10 @@ h1 {
   .game-logo {
     max-width: 120px;
   }
+
   h1 {
-    font-size: 2rem; /* Adjust heading size on smaller screens */
+    font-size: 2rem;
+    /* Adjust heading size on smaller screens */
   }
 }
 
@@ -999,32 +1137,51 @@ h1 {
   .game-logo {
     max-width: 100px;
   }
+
   h1 {
     font-size: 1.8rem;
   }
+
   .home-container {
     padding: 10px;
   }
+
   .player-name-input {
     padding: 12px;
     font-size: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(197, 160, 89, 0.3);
   }
-  .start-game-button, .copy-link-button, .play-button, .draw-button, .join-button, .new-game-button, .return-home-button {
+
+  .start-game-button,
+  .copy-link-button,
+  .play-button,
+  .draw-button,
+  .join-button,
+  .new-game-button,
+  .return-home-button {
     padding: 12px 20px;
     font-size: 1rem;
   }
 }
+
 /* Responsive Logo in Game Room */
 .logo-in-button {
-  display: none; /* Hidden by default */
-  height: 20px; /* Adjust size as needed */
+  display: none;
+  /* Hidden by default */
+  height: 20px;
+  /* Adjust size as needed */
   width: auto;
-  margin-left: 8px; /* Space between logo and text (RTL) */
-  vertical-align: middle; /* Align with button text */
+  margin-left: 8px;
+  /* Space between logo and text (RTL) */
+  vertical-align: middle;
+  /* Align with button text */
 }
 
 .button-with-logo {
-  display: inline-flex; /* Use flexbox for alignment */
+  display: inline-flex;
+  /* Use flexbox for alignment */
   align-items: center;
   justify-content: center;
 }
@@ -1032,35 +1189,45 @@ h1 {
 /* Small devices (e.g., phones, max-width 768px) */
 @media (max-width: 768px) {
   .logo-container-large {
-    display: none; /* Hide the large logo container */
+    display: none;
+    /* Hide the large logo container */
   }
 
   .logo-in-button {
-    display: inline-block; /* Show the logo inside the button */
+    display: inline-block;
+    /* Show the logo inside the button */
   }
 
   .return-home-button.button-with-logo span {
-     /* Optional: Add margin if needed between text and logo */
-     /* margin-left: 5px; */
+    /* Optional: Add margin if needed between text and logo */
+    /* margin-left: 5px; */
   }
 }
+
 /* Further small device optimizations for Game Room */
 @media (max-width: 768px) {
   .room-id-display {
-    display: none; /* Hide Room ID */
+    display: none;
+    /* Hide Room ID */
   }
 
   .player.active {
     /* Make active player indicator less prominent */
-    border: 1px solid var(--primary-color); /* Thinner border */
-    box-shadow: 0 2px 5px rgba(168, 50, 50, 0.1); /* Smaller shadow */
-    transform: scale(1.01); /* Smaller scale */
-    padding: 10px; /* Slightly reduce padding */
+    border: 1px solid var(--primary-color);
+    /* Thinner border */
+    box-shadow: 0 2px 5px rgba(168, 50, 50, 0.1);
+    /* Smaller shadow */
+    transform: scale(1.01);
+    /* Smaller scale */
+    padding: 10px;
+    /* Slightly reduce padding */
   }
 
   .board-area {
-    min-height: 140px; /* Increase board height slightly */
-    padding: 5px 0; /* Adjust padding if needed */
+    min-height: 140px;
+    /* Increase board height slightly */
+    padding: 5px 0;
+    /* Adjust padding if needed */
   }
 
   .domino {
@@ -1068,12 +1235,14 @@ h1 {
     /* width: 60px; */
     /* height: 30px; */
   }
+
   /* .domino.vertical { width: 30px; height: 60px; } */
   /* .domino-half:first-child { border-right-width: 1px; } */
   /* .domino.vertical .domino-half:first-child { border-bottom-width: 1px; } */
   /* .dot { width: 4px; height: 4px; } */
 
 }
+
 /* Header styling for coin display */
 .main-header {
   background-color: var(--light-color);
@@ -1093,19 +1262,20 @@ h1 {
 .coin-icon {
   width: 20px;
   height: 20px;
-  margin-left: 5px; /* For RTL layout */
+  margin-left: 5px;
+  /* For RTL layout */
 }
 
 @media (max-width: 768px) {
   .header-content {
     flex-wrap: wrap;
   }
-  
+
   .coin-icon {
     width: 16px;
     height: 16px;
   }
-  
+
   .header-actions {
     margin-top: 5px;
     width: 100%;
@@ -1133,6 +1303,7 @@ h1 {
     margin-top: 10px;
     width: 100%;
   }
+
   .logout-button,
   .return-home-button {
     min-height: 48px;
@@ -1169,14 +1340,14 @@ h1 {
 .return-home-button:hover {
   background: linear-gradient(90deg, var(--button-hover) 60%, var(--dark-color) 100%);
   color: #fff;
-  box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
 .logout-button:active,
 .return-home-button:active {
   background: linear-gradient(90deg, var(--dark-color) 60%, var(--primary-color) 100%);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(168,50,50,0.12);
+  box-shadow: 0 2px 8px rgba(168, 50, 50, 0.12);
 }
 
 .logout-button:focus,
@@ -1265,21 +1436,26 @@ h1 {
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.4);
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
+
 .modal-content {
   background: #fff;
   padding: 24px 18px;
   border-radius: 10px;
   text-align: center;
   min-width: 250px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
 }
+
 .modal-content button {
   margin: 10px 8px 0 8px;
   padding: 10px 18px;
@@ -1290,6 +1466,7 @@ h1 {
   font-weight: bold;
   cursor: pointer;
 }
+
 .modal-content button:last-child {
   background: #888;
 }
