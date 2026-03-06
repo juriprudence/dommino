@@ -499,6 +499,11 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
           line-height: 1.6;
           margin: 0;
         }
+        @media (max-width: 768px) {
+          .seo-section {
+            display: none;
+          }
+        }
       `}</style>
     </div>
   );

@@ -7,7 +7,7 @@ const BoardArea = React.forwardRef(({ board, text }, ref) => (
       <div className="board-tiles">
         {board.map((tile, index) => (
           <div key={`board-${index}`} className="board-tile">
-            <div className={`domino ${tile.orientation} ${tile.flipped ? 'flipped' : ''}`}>
+            <div id={`board-domino-${index}`} className={`domino ${tile.orientation} ${tile.flipped ? 'flipped' : ''}`}>
               <div className="domino-half">
                 <DominoDots value={tile.left} />
               </div>

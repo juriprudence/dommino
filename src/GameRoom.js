@@ -11,6 +11,8 @@ import PlayerHand from './PlayerHand'; // Import PlayerHand
 import GameActions from './GameActions'; // Import GameActions
 import JoinDialog from './JoinDialog'; // Import JoinDialog
 import PlayersInfo from './PlayersInfo'; // Import PlayersInfo
+import ChatBox from './ChatBox'; // Import ChatBox
+import VoiceChat from './VoiceChat'; // Import VoiceChat
 
 // GameRoom.js - Main component for the game room
 // PlayerInfo.js - displays player info (name, score, tiles, AI indicator)
@@ -694,14 +696,27 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
         const boardRect = boardAreaElement ? boardAreaElement.getBoundingClientRect() : null;
 
         if (boardRect) {
-          // Target position: middle of the board for now, or near left/right based on position
-          let targetX = boardRect.left + boardRect.width / 2;
-          let targetY = boardRect.top + boardRect.height / 2;
+          const tileWidth = orientation === 'vertical' ? 46 : 84;
+          const tileHeight = orientation === 'vertical' ? 84 : 46;
 
-          if (position === 'left' || position === 'first') {
-            targetX = boardRect.left + 50;
-          } else if (position === 'right') {
-            targetX = boardRect.left + boardRect.width - 130;
+          let targetX = boardRect.left + boardRect.width / 2 - tileWidth / 2;
+          let targetY = boardRect.top + boardRect.height / 2 - tileHeight / 2;
+
+          const boardTilesCount = game.gameState.board ? game.gameState.board.length : 0;
+
+          if (boardTilesCount > 0 && position !== 'first') {
+            const firstTile = document.getElementById('board-domino-0');
+            const lastTile = document.getElementById(`board-domino-${boardTilesCount - 1}`);
+
+            if (position === 'left' && firstTile) {
+              const firstRect = firstTile.getBoundingClientRect();
+              targetX = firstRect.left - tileWidth - 16;
+              targetY = firstRect.top + firstRect.height / 2 - tileHeight / 2;
+            } else if (position === 'right' && lastTile) {
+              const lastRect = lastTile.getBoundingClientRect();
+              targetX = lastRect.right + 16;
+              targetY = lastRect.top + lastRect.height / 2 - tileHeight / 2;
+            }
           }
 
           setAnimatingTile(prev => ({
@@ -1044,6 +1059,16 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
               text={text}
             />
           )}
+
+          {/* Chat Component */}
+          <ChatBox
+            roomId={roomId}
+            playerName={playerNumber ? game.players?.[playerNumber]?.name : (user?.displayName || 'Observer')}
+            playerUid={user?.uid}
+            text={text}
+          />
+          <VoiceChat roomId={roomId} playerUid={user?.uid} />
+
         </div>
       )}
 
