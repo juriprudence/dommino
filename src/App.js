@@ -13,6 +13,7 @@ import ContactUs from './ContactUs';
 import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 import { auth, subscribeToUserCoins, getText } from './Util'; // Import getText, remove arabicText and fetchUserCoins
+import SoundManager from './SoundManager'; // Import SoundManager
 import './App.css';
 // Removed Login.css import as styles are now in App.css or inline
 
@@ -21,6 +22,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true); // State to handle initial auth check
   const [coins, setCoins] = useState(0); // State for user coins
   const [language, setLanguage] = useState('en'); // State for current language ('ar', 'en', 'fr'), default 'en'
+  const [isMuted, setIsMuted] = useState(SoundManager.isMuted); // Track mute state for UI
 
   useEffect(() => {
     // Listen for authentication state changes
@@ -113,6 +115,13 @@ function App() {
                   <option value="ar">العربية</option>
                 </select>
               </div>
+              <button
+                className={`logout-button ${isMuted ? 'muted' : ''}`}
+                onClick={() => setIsMuted(SoundManager.toggleMute())}
+                title={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
               <button className="logout-button" onClick={handleLogout}>{text.logout}</button>
               <button className="logout-button" onClick={() => navigate('/')}>{text.returnHome}</button>
             </div>

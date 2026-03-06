@@ -1053,15 +1053,31 @@ h1 {
 }
 
 .winner-card {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  padding: 25px;
   text-align: center;
-  width: 80%;
-  max-width: 400px;
+  width: 90%;
+  max-width: 420px;
   position: relative;
   z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #2c1e14;
+  /* Dark brown for main text */
+}
+
+.winner-card h2 {
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  font-size: 2rem;
+}
+
+.winner-card .winner-info p,
+.winner-card .tie-message p {
+  color: #4b2c20;
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
 .winner-info {

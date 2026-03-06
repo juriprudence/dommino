@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ref, set, push, update, get } from 'firebase/database'; // Added get
 import { db, generateDominoTiles, shuffleTiles, fetchUserCoins, setUserCoins } from './Util'; // Removed arabicText, Added fetchUserCoins, setUserCoins
 import DominoDots from './DominoDots'; // Keep if used elsewhere, otherwise remove
+import SoundManager from './SoundManager'; // Import SoundManager
 
 // Accept user and coins as props
 const Home = ({ user, coins, language, text }) => { // Add language and text props
@@ -13,6 +14,11 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
   const [aiDifficulty, setAiDifficulty] = useState('medium'); // 'easy', 'medium', 'hard'
   // const database = getDatabase(); // Use imported db instance
   const [betAmount, setBetAmount] = useState(0); // State for bet amount
+
+  // Play background theme music
+  useEffect(() => {
+    SoundManager.play('theme');
+  }, []);
 
   // Removed useEffect for loading playerName from localStorage
 

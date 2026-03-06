@@ -13,6 +13,7 @@ import JoinDialog from './JoinDialog'; // Import JoinDialog
 import PlayersInfo from './PlayersInfo'; // Import PlayersInfo
 import ChatBox from './ChatBox'; // Import ChatBox
 import VoiceChat from './VoiceChat'; // Import VoiceChat
+import SoundManager from './SoundManager'; // Import SoundManager
 
 // GameRoom.js - Main component for the game room
 // PlayerInfo.js - displays player info (name, score, tiles, AI indicator)
@@ -170,6 +171,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             updates[`gameState/winner`] = winner;
             updates[`gameState/status`] = "finished";
             updates[`gameState/message`] = message;
+            SoundManager.play('win'); // Play win sound when game ends
             // Increment winner's score
             const currentScore = gameData.gameState.scores?.[winner] || 0;
             updates[`gameState/scores/${winner}`] = currentScore + 1;
@@ -198,6 +200,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           }
 
           await update(ref(db, `games/${roomId}`), updates); // Use imported db
+          SoundManager.play('click'); // Play sound when AI plays
 
         } else if (aiMove.action === 'draw') {
           // AI wants to draw a tile
@@ -273,6 +276,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
               status: "finished",
               message: message
             };
+            if (winner !== "tie") SoundManager.play('win'); // Play win sound for deadlock winner
             // Increment winner's score if not a tie
             if (winner !== "tie") {
               const currentScore = gameData.gameState.scores?.[winner] || 0;
@@ -432,8 +436,14 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     //   setLeaderboard(data || {});
     // });
 
-    // Clean up subscription on unmount
-    return () => unsubscribe();
+    // Play background theme music
+    SoundManager.play('theme');
+
+    // Clean up subscription and stop music on unmount
+    return () => {
+      unsubscribe();
+      SoundManager.stop('theme');
+    };
   }, [roomId, user, handleAIMove, navigate, text, db]); // Added navigate, text, db
 
   useEffect(() => {
@@ -581,6 +591,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           status: "finished",
           message: messageBlocked
         };
+        if (winnerBlocked !== "tie") SoundManager.play('win'); // Play win sound for deadlock winner
         if (winnerBlocked !== "tie") {
           const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
           deadlockUpdates[`scores/${winnerBlocked}`] = currentScore + 1;
@@ -749,6 +760,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
       // Wait for animation to finish before updating Firebase
       await new Promise(resolve => setTimeout(resolve, 650));
       setAnimatingTile(null);
+      SoundManager.play('click'); // Play sound when human player tile lands
     }
 
     const updatedPlayerTiles = [...(game.players?.[playerNumber]?.tiles || [])];
@@ -785,6 +797,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
         updates[`gameState/winner`] = winner;
         updates[`gameState/status`] = "finished";
         updates[`gameState/message`] = message;
+        SoundManager.play('win'); // Play win sound
         const currentScore = game.gameState.scores?.[winner] || 0;
         updates[`gameState/scores/${winner}`] = currentScore + 1;
         updateLeaderboard(game.players?.[winner]?.name, currentScore + 1, game.players?.[winner]?.uid);
@@ -857,6 +870,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           updates[`gameState/status`] = "finished";
           updates[`gameState/message`] = messageBlocked;
           if (winnerBlocked !== "tie") {
+            SoundManager.play('win'); // Play win sound for deadlock winner
             const currentScore = game.gameState.scores?.[winnerBlocked] || 0;
             updates[`gameState/scores/${winnerBlocked}`] = currentScore + 1;
             updateLeaderboard(game.players?.[winnerBlocked]?.name, currentScore + 1, game.players?.[winnerBlocked]?.uid);
