@@ -19,22 +19,22 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
   const handleStartGame = async () => {
     // Use user.displayName from Firebase Auth object
     if (!user || !user.displayName) { // Check for displayName
-        setError('User information is missing.'); // Should not happen if login works
-        return;
+      setError('User information is missing.'); // Should not happen if login works
+      return;
     }
 
     // Validate bet amount for multiplayer games
     if (playMode === 'multiplayer') {
-        const bet = parseInt(betAmount, 10) || 0;
-        if (bet < 0) {
-            setError('Bet amount cannot be negative.');
-            return;
-        }
-        // Assuming 'coins' prop holds the user's current coin balance
-        if (bet > coins) {
-            setError(`You cannot bet more than your current coins (${coins}).`);
-            return;
-        }
+      const bet = parseInt(betAmount, 10) || 0;
+      if (bet < 0) {
+        setError('Bet amount cannot be negative.');
+        return;
+      }
+      // Assuming 'coins' prop holds the user's current coin balance
+      if (bet > coins) {
+        setError(`You cannot bet more than your current coins (${coins}).`);
+        return;
+      }
     }
     setError(''); // Clear previous errors
 
@@ -92,8 +92,8 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
       // Ensure player 1 has coins initialized
       const initialCoins = await fetchUserCoins(user.uid);
       if (typeof initialCoins !== 'number' || initialCoins < 0) { // Check if null, undefined, or invalid
-          console.log(`Initializing coins for player 1 (${user.uid})`);
-          await setUserCoins(user.uid, 100); // Set default 100 coins
+        console.log(`Initializing coins for player 1 (${user.uid})`);
+        await setUserCoins(user.uid, 100); // Set default 100 coins
       }
 
       console.log("Creating new game...");
@@ -157,167 +157,167 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
   };
 
   const handlePlayWithAnyone = async () => {
-  if (!user || !user.displayName) {
-    setError('User information is missing.');
-    return;
-  }
-  setError('');
-  const currentUserName = user.displayName;
-  const gamesRef = ref(db, 'games');
-  let found = false;
-  let foundGameId = null;
-  let foundGameData = null;
-  await new Promise((resolve) => {
-    import('firebase/database').then(({ get }) => {
-      get(gamesRef).then(snapshot => {
-        if (snapshot.exists()) {
-          snapshot.forEach(childSnap => {
-            const val = childSnap.val();
-            const now = Date.now();
-            const created = val?.gameState?.timestamp || 0;
-            const lastActive = val?.gameState?.lastActive || created;
-            const thirtyMinutes = 30 * 60 * 1000;
-            const fiveMinutes = 5 * 60 * 1000;
-            if (
-              val &&
-              val.gameState &&
-              val.gameState.gameMode === 'anyone' &&
-              val.gameState.status === 'waiting' &&
-              now - created <= thirtyMinutes &&
-              now - lastActive <= fiveMinutes &&
-              val.players && val.players.player1 && val.players.player1.uid !== user.uid // Only join if not same uid
-            ) {
-              found = true;
-              foundGameId = childSnap.key;
-              foundGameData = val;
-              return true; // break
-            }
-          });
-        }
-        resolve();
+    if (!user || !user.displayName) {
+      setError('User information is missing.');
+      return;
+    }
+    setError('');
+    const currentUserName = user.displayName;
+    const gamesRef = ref(db, 'games');
+    let found = false;
+    let foundGameId = null;
+    let foundGameData = null;
+    await new Promise((resolve) => {
+      import('firebase/database').then(({ get }) => {
+        get(gamesRef).then(snapshot => {
+          if (snapshot.exists()) {
+            snapshot.forEach(childSnap => {
+              const val = childSnap.val();
+              const now = Date.now();
+              const created = val?.gameState?.timestamp || 0;
+              const lastActive = val?.gameState?.lastActive || created;
+              const thirtyMinutes = 30 * 60 * 1000;
+              const fiveMinutes = 5 * 60 * 1000;
+              if (
+                val &&
+                val.gameState &&
+                val.gameState.gameMode === 'anyone' &&
+                val.gameState.status === 'waiting' &&
+                now - created <= thirtyMinutes &&
+                now - lastActive <= fiveMinutes &&
+                val.players && val.players.player1 && val.players.player1.uid !== user.uid // Only join if not same uid
+              ) {
+                found = true;
+                foundGameId = childSnap.key;
+                foundGameData = val;
+                return true; // break
+              }
+            });
+          }
+          resolve();
+        });
       });
     });
-  });
 
-  // Clear any previous waiting interval
-  const existingIntervalId = localStorage.getItem('waitingIntervalId');
-  if (existingIntervalId) {
+    // Clear any previous waiting interval
+    const existingIntervalId = localStorage.getItem('waitingIntervalId');
+    if (existingIntervalId) {
       clearInterval(parseInt(existingIntervalId, 10));
       localStorage.removeItem('waitingIntervalId');
-  }
-   const existingWaitingGameId = localStorage.getItem('waitingGameId');
-   if (existingWaitingGameId) {
-       localStorage.removeItem('waitingGameId');
-   }
-
-
-  if (found && foundGameId && foundGameData) {
-    // Join as player2
-    console.log(`Joining game ${foundGameId} as player 2`);
-    await update(ref(db, `games/${foundGameId}/players/player2`), { // Use imported db
-      name: currentUserName, // Use displayName
-      uid: user.uid, // Add user ID
-      connected: true
-    });
-    await update(ref(db, `games/${foundGameId}/gameState`), { // Use imported db
-      status: 'playing',
-      lastActive: Date.now() // Update activity when joining
-    });
-    localStorage.setItem('playerName', currentUserName); // Still useful?
-    localStorage.setItem('playerNumber', 'player2');
-    navigate(`/room/${foundGameId}`);
-  } else {
-    // Create a new waiting game
-    console.log(`Creating new 'anyone' game for ${currentUserName}`);
-
-    // Ensure player 1 has coins initialized
-    const initialCoins = await fetchUserCoins(user.uid);
-    if (typeof initialCoins !== 'number' || initialCoins < 0) { // Check if null, undefined, or invalid
-        console.log(`Initializing coins for player 1 (${user.uid}) in 'anyone' mode`);
-        await setUserCoins(user.uid, 100); // Set default 100 coins
+    }
+    const existingWaitingGameId = localStorage.getItem('waitingGameId');
+    if (existingWaitingGameId) {
+      localStorage.removeItem('waitingGameId');
     }
 
-    const newGameRef = push(gamesRef);
-    const gameId = newGameRef.key;
-    const tiles = generateDominoTiles();
-    const shuffledTiles = shuffleTiles(tiles);
-    const player1Tiles = shuffledTiles.slice(0, 7);
-    const player2Tiles = shuffledTiles.slice(7, 14); // Pre-assign tiles for player 2
-    const boneyard = shuffledTiles.slice(14);
-    const gameData = {
-      players: {
-        player1: {
-          name: currentUserName, // Use prop
-          uid: user.uid, // Add user ID
-          tiles: player1Tiles,
-          connected: true
-        },
-        player2: {
-          name: '', // Waiting for player 2
-          tiles: player2Tiles, // Assign tiles but keep disconnected
-          connected: false
-        }
-      },
-      gameState: {
-        status: 'waiting',
-        currentPlayerIndex: 0,
-        board: [],
-        boneyard: boneyard,
-        timestamp: Date.now(),
-        lastActive: Date.now(), // Set initial lastActive
-        winner: null,
-        message: 'Waiting for another player...',
-        gameMode: 'anyone',
-        aiDifficulty: null,
-        scores: { player1: 0, player2: 0 }
+
+    if (found && foundGameId && foundGameData) {
+      // Join as player2
+      console.log(`Joining game ${foundGameId} as player 2`);
+      await update(ref(db, `games/${foundGameId}/players/player2`), { // Use imported db
+        name: currentUserName, // Use displayName
+        uid: user.uid, // Add user ID
+        connected: true
+      });
+      await update(ref(db, `games/${foundGameId}/gameState`), { // Use imported db
+        status: 'playing',
+        lastActive: Date.now() // Update activity when joining
+      });
+      localStorage.setItem('playerName', currentUserName); // Still useful?
+      localStorage.setItem('playerNumber', 'player2');
+      navigate(`/room/${foundGameId}`);
+    } else {
+      // Create a new waiting game
+      console.log(`Creating new 'anyone' game for ${currentUserName}`);
+
+      // Ensure player 1 has coins initialized
+      const initialCoins = await fetchUserCoins(user.uid);
+      if (typeof initialCoins !== 'number' || initialCoins < 0) { // Check if null, undefined, or invalid
+        console.log(`Initializing coins for player 1 (${user.uid}) in 'anyone' mode`);
+        await setUserCoins(user.uid, 100); // Set default 100 coins
       }
-    };
-    await set(newGameRef, gameData);
-    localStorage.setItem('playerName', currentUserName); // Still useful?
-    localStorage.setItem('playerNumber', 'player1');
-    localStorage.setItem('waitingGameId', gameId); // Store the ID of the game we are waiting in
 
-     // Start interval to update lastActive for the *new* waiting game
-     const interval = setInterval(() => {
-         const currentWaitingGameId = localStorage.getItem('waitingGameId');
-         // Only update if we are still supposed to be waiting in this game
-         if (currentWaitingGameId === gameId) {
-             console.log(`Updating lastActive for waiting game ${gameId}`);
-             const waitingGameRef = ref(db, `games/${gameId}/gameState`); // Use imported db
-             update(waitingGameRef, { lastActive: Date.now() }).catch(err => {
-                 console.error("Error updating lastActive:", err);
-                 // Consider clearing interval if update fails repeatedly
-             });
-         } else {
-             console.log("No longer waiting in this game, clearing interval.");
-             clearInterval(interval); // Clear interval if game ID changed
-             localStorage.removeItem('waitingIntervalId');
-         }
-     }, 30000); // 30 seconds
-     localStorage.setItem('waitingIntervalId', interval.toString()); // Store interval ID as string
+      const newGameRef = push(gamesRef);
+      const gameId = newGameRef.key;
+      const tiles = generateDominoTiles();
+      const shuffledTiles = shuffleTiles(tiles);
+      const player1Tiles = shuffledTiles.slice(0, 7);
+      const player2Tiles = shuffledTiles.slice(7, 14); // Pre-assign tiles for player 2
+      const boneyard = shuffledTiles.slice(14);
+      const gameData = {
+        players: {
+          player1: {
+            name: currentUserName, // Use prop
+            uid: user.uid, // Add user ID
+            tiles: player1Tiles,
+            connected: true
+          },
+          player2: {
+            name: '', // Waiting for player 2
+            tiles: player2Tiles, // Assign tiles but keep disconnected
+            connected: false
+          }
+        },
+        gameState: {
+          status: 'waiting',
+          currentPlayerIndex: 0,
+          board: [],
+          boneyard: boneyard,
+          timestamp: Date.now(),
+          lastActive: Date.now(), // Set initial lastActive
+          winner: null,
+          message: 'Waiting for another player...',
+          gameMode: 'anyone',
+          aiDifficulty: null,
+          scores: { player1: 0, player2: 0 }
+        }
+      };
+      await set(newGameRef, gameData);
+      localStorage.setItem('playerName', currentUserName); // Still useful?
+      localStorage.setItem('playerNumber', 'player1');
+      localStorage.setItem('waitingGameId', gameId); // Store the ID of the game we are waiting in
+
+      // Start interval to update lastActive for the *new* waiting game
+      const interval = setInterval(() => {
+        const currentWaitingGameId = localStorage.getItem('waitingGameId');
+        // Only update if we are still supposed to be waiting in this game
+        if (currentWaitingGameId === gameId) {
+          console.log(`Updating lastActive for waiting game ${gameId}`);
+          const waitingGameRef = ref(db, `games/${gameId}/gameState`); // Use imported db
+          update(waitingGameRef, { lastActive: Date.now() }).catch(err => {
+            console.error("Error updating lastActive:", err);
+            // Consider clearing interval if update fails repeatedly
+          });
+        } else {
+          console.log("No longer waiting in this game, clearing interval.");
+          clearInterval(interval); // Clear interval if game ID changed
+          localStorage.removeItem('waitingIntervalId');
+        }
+      }, 30000); // 30 seconds
+      localStorage.setItem('waitingIntervalId', interval.toString()); // Store interval ID as string
 
 
-    navigate(`/room/${gameId}`);
-  }
-};
+      navigate(`/room/${gameId}`);
+    }
+  };
 
   // Clear waiting interval on component unmount or before navigating away
   useEffect(() => {
-      return () => {
-          const intervalId = localStorage.getItem('waitingIntervalId');
-          if (intervalId) {
-              clearInterval(parseInt(intervalId, 10));
-              localStorage.removeItem('waitingIntervalId');
-              // Optionally remove the waiting game itself if player 1 leaves?
-              // const waitingGameId = localStorage.getItem('waitingGameId');
-              // if (waitingGameId) {
-              //    remove(ref(database, `games/${waitingGameId}`));
-              //    localStorage.removeItem('waitingGameId');
-              // }
-          }
-           // Clean up waitingGameId if user navigates away manually
-           // localStorage.removeItem('waitingGameId');
-      };
+    return () => {
+      const intervalId = localStorage.getItem('waitingIntervalId');
+      if (intervalId) {
+        clearInterval(parseInt(intervalId, 10));
+        localStorage.removeItem('waitingIntervalId');
+        // Optionally remove the waiting game itself if player 1 leaves?
+        // const waitingGameId = localStorage.getItem('waitingGameId');
+        // if (waitingGameId) {
+        //    remove(ref(database, `games/${waitingGameId}`));
+        //    localStorage.removeItem('waitingGameId');
+        // }
+      }
+      // Clean up waitingGameId if user navigates away manually
+      // localStorage.removeItem('waitingGameId');
+    };
   }, []); // Run only on unmount
 
 
@@ -419,23 +419,42 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
             </div>
           )}
         </div>
-{error && <p className="error-message">{error}</p>}
-{/* Updated button text based on mode */}
-<button onClick={playMode === 'anyone' ? handlePlayWithAnyone : handleStartGame} className="start-game-button arabic-text">
-  {playMode === 'multiplayer' ? text.createGame :
-   playMode === 'ai' ? text.startGame :
-   (text.findJoinGame || 'ابحث عن لعبة / انضم')} {/* Added text key */}
-</button>
-<button onClick={() => navigate('/lobby')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
-  {text.lobby} {/* Using text prop */}
-</button>
-<button onClick={() => navigate('/best-player')} className="start-game-button arabic-text" style={{marginTop: '10px'}}>
-  {text.bestPlayer} {/* Using text prop */}
-</button>
-</div>
+        {error && <p className="error-message">{error}</p>}
+        {/* Updated button text based on mode */}
+        <button onClick={playMode === 'anyone' ? handlePlayWithAnyone : handleStartGame} className="start-game-button arabic-text">
+          {playMode === 'multiplayer' ? text.createGame :
+            playMode === 'ai' ? text.startGame :
+              (text.findJoinGame || 'ابحث عن لعبة / انضم')} {/* Added text key */}
+        </button>
+        <button onClick={() => navigate('/lobby')} className="start-game-button arabic-text" style={{ marginTop: '10px' }}>
+          {text.lobby} {/* Using text prop */}
+        </button>
+        <button onClick={() => navigate('/best-player')} className="start-game-button arabic-text" style={{ marginTop: '10px' }}>
+          {text.bestPlayer} {/* Using text prop */}
+        </button>
+      </div>
 
 
-      {/* Simple styling for user info */}
+      {/* SEO content section for AdSense */}
+      <section className="seo-section" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <h2>{text.seoTitle}</h2>
+        <div className="seo-grid">
+          <div className="seo-card">
+            <h3>{text.seoHistoryTitle}</h3>
+            <p>{text.seoHistoryDesc}</p>
+          </div>
+          <div className="seo-card">
+            <h3>{text.seoRulesTitle}</h3>
+            <p>{text.seoRulesDesc}</p>
+          </div>
+          <div className="seo-card">
+            <h3>{text.seoVariationsTitle}</h3>
+            <p>{text.seoVariationsDesc}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Simple styling for user info and SEO section */}
       <style>{`
         .user-info {
           position: absolute;
@@ -445,6 +464,40 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
           padding: 5px 10px;
           border-radius: 4px;
           font-weight: bold;
+        }
+        .seo-section {
+          margin-top: 4rem;
+          padding: 2rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+        }
+        .seo-section h2 {
+          color: var(--primary-color);
+          margin-bottom: 2rem;
+        }
+        .seo-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 2rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        .seo-card {
+          background: #fff;
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          color: #333;
+        }
+        .seo-card h3 {
+          color: var(--primary-color);
+          margin-bottom: 1rem;
+        }
+        .seo-card p {
+          font-size: 0.95rem;
+          line-height: 1.6;
+          margin: 0;
         }
       `}</style>
     </div>

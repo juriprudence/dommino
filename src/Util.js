@@ -33,7 +33,7 @@ export const arabicText = {
   loading: "...جاري تحميل اللعبة",
   gameNotFound: "اللعبة غير موجودة",
   played: "لعب قطعة",
-  
+
   // AI related translations
   aiMode: "العب ضد الذكاء الاصطناعي",
   multiplayerMode: "العب مع صديق",
@@ -45,7 +45,7 @@ export const arabicText = {
   aiIndicator: "(ذكاء اصطناعي)",
   aiThinking: "يفكر",
   aiModeActive: "وضع الذكاء الاصطناعي",
-  
+
   // Auto-restart and winner display translations
   goesFirst: "يبدأ اللعبة",
   playAgain: "العب مرة أخرى",
@@ -92,8 +92,29 @@ export const arabicText = {
   draw: "اسحب",
   confirmJoinBet: "هذه اللعبة تحتوي على رهان. هل تريد المتابعة؟",
   continue: "متابعة",
-  cancel: "إلغاء"
+  cancel: "إلغاء",
+
+  // New translations for AdSense fix
+  footerHome: "الرئيسية",
+  footerAbout: "من نحن",
+  footerContact: "اتصل بنا",
+  footerPrivacy: "سياسة الخصوصية",
+  footerTerms: "شروط الخدمة",
+  copyright: "جميع الحقوق محفوظة © 2026 لعبة الدومينو",
+  privacyTitle: "سياسة الخصوصية",
+  termsTitle: "شروط الخدمة",
+  aboutTitle: "من نحن",
+  contactTitle: "اتصل بنا",
+  seoTitle: "حول لعبة الدومينو",
+  seoIntro: "تعد لعبة الدومينو من أشهر وأقدم الألعاب الشعبية في العالم العربي. تعتمد اللعبة على المهارة والذكاء في وضع القطع بشكل استراتيجي.",
+  seoHistoryTitle: "تاريخ الدومينو",
+  seoHistoryDesc: "نشأت لعبة الدومينو في الصين في القرن الثالث عشر، ثم انتقلت إلى أوروبا وأصبحت جزءاً أساسياً من المقاهي العربية التقليدية.",
+  seoRulesTitle: "كيفية اللعب",
+  seoRulesDesc: "تتكون اللعبة من 28 قطعة. يبدأ كل لاعب بـ 7 قطع، والهدف هو التخلص من جميع القطع عبر مطابقة الأرقام على اللوحة.",
+  seoVariationsTitle: "أنواع الدومينو",
+  seoVariationsDesc: "هناك عدة طرق للعب، منها 'العادية' و'المغلقة'، وتتميز اللعبة بتنوع قوانينها حسب المناطق الجغرافية."
 };
+
 // Placeholder English translations (replace with actual text)
 const englishText = {
   gameTitle: "Domino Game",
@@ -185,7 +206,27 @@ const englishText = {
   draw: "Draw",
   confirmJoinBet: "This game has a bet. Do you want to continue?",
   continue: "Continue",
-  cancel: "Cancel"
+  cancel: "Cancel",
+
+  // New translations for AdSense fix
+  footerHome: "Home",
+  footerAbout: "About Us",
+  footerContact: "Contact Us",
+  footerPrivacy: "Privacy Policy",
+  footerTerms: "Terms of Service",
+  copyright: "All Rights Reserved © 2026 Domino Game",
+  privacyTitle: "Privacy Policy",
+  termsTitle: "Terms of Service",
+  aboutTitle: "About Us",
+  contactTitle: "Contact Us",
+  seoTitle: "About Domino Game",
+  seoIntro: "Dominoes is one of the most famous and oldest table games in the world. It relies on skill and intelligence to strategically place tiles.",
+  seoHistoryTitle: "History of Dominoes",
+  seoHistoryDesc: "The game originated in China in the 13th century, then moved to Europe and became a staple of tradition across the globe.",
+  seoRulesTitle: "How to Play",
+  seoRulesDesc: "The game consists of 28 tiles. Each player starts with 7 tiles, and the goal is to empty your hand by matching numbers on the board.",
+  seoVariationsTitle: "Variations",
+  seoVariationsDesc: "There are many ways to play, including 'Block' and 'Draw' games, with rules varying by region."
 };
 
 // Placeholder French translations (replace with actual text)
@@ -238,6 +279,7 @@ const frenchText = {
   guest: "Invité",
   logout: "Déconnexion",
   returnHome: "Accueil",
+  footerHome: "Accueil",
   lobby: "Salon",
   bestPlayer: "Meilleur Joueur",
   createGame: "Créer une partie",
@@ -279,7 +321,26 @@ const frenchText = {
   draw: "Piocher",
   confirmJoinBet: "Cette partie a un pari. Voulez-vous continuer ?",
   continue: "Continuer",
-  cancel: "Annuler"
+  cancel: "Annuler",
+
+  // New translations for AdSense fix
+  footerAbout: "À propos",
+  footerContact: "Contactez-nous",
+  footerPrivacy: "Confidentialité",
+  footerTerms: "Conditions",
+  copyright: "Tous droits réservés © 2026 Jeu de Domino",
+  privacyTitle: "Politique de Confidentialité",
+  termsTitle: "Conditions d'Utilisation",
+  aboutTitle: "À Propos de Nous",
+  contactTitle: "Contactez-nous",
+  seoTitle: "À Propos du Jeu de Domino",
+  seoIntro: "Le Domino est l'un des jeux de table les plus célèbres et les plus anciens au monde. Il repose sur l'habileté et l'intelligence.",
+  seoHistoryTitle: "Histoire du Domino",
+  seoHistoryDesc: "Le jeu est né en Chine au XIIIe siècle, puis s'est répandu en Europe et dans le monde entier.",
+  seoRulesTitle: "Comment Jouer",
+  seoRulesDesc: "Le jeu se compose de 28 dominos. Chaque joueur commence avec 7 dominos, l'objectif est de vider sa main.",
+  seoVariationsTitle: "Variations",
+  seoVariationsDesc: "Il existe de nombreuses façons de jouer, y compris le 'Bloque' et le 'Tirage'."
 };
 
 // Combine all translations
@@ -288,6 +349,7 @@ export const translations = {
   en: englishText,
   fr: frenchText,
 };
+
 
 // Function to get the correct text object based on language code
 export const getText = (languageCode = 'en') => {
@@ -376,16 +438,16 @@ export const checkWinner = (game) => {
   } else if (game.players.player2.tiles.length === 0) {
     return "player2";
   }
-  
+
   // Check if game is deadlocked (both players can't play)
   const p1Blocked = isPlayerBlocked(game.players.player1.tiles, game.gameState.board);
   const p2Blocked = isPlayerBlocked(game.players.player2.tiles, game.gameState.board);
-  
+
   if (p1Blocked && p2Blocked && (!game.gameState.boneyard || game.gameState.boneyard.length === 0)) {
     // Calculate points - player with lowest points wins
     const p1Points = game.players.player1.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
     const p2Points = game.players.player2.tiles.reduce((sum, tile) => sum + tile.left + tile.right, 0);
-    
+
     if (p1Points < p2Points) {
       return "player1";
     } else if (p2Points < p1Points) {
@@ -394,19 +456,19 @@ export const checkWinner = (game) => {
       return "tie"; // Game is tied
     }
   }
-  
+
   return null;
 };
 
 // Check if player is blocked (can't make a move)
 export const isPlayerBlocked = (playerTiles, board) => {
   if (!board || board.length === 0) return false;
-  
+
   for (const tile of playerTiles) {
     const { canPlay } = canPlayTile(tile, board);
     if (canPlay) return false;
   }
-  
+
   return true;
 };
 
@@ -466,7 +528,7 @@ export const getUserCoins = (uid, callback) => {
 export const subscribeToUserCoins = (uid, callback) => {
   if (!uid) {
     console.warn("subscribeToUserCoins called without uid");
-    return () => {}; // Return a no-op function if no uid
+    return () => { }; // Return a no-op function if no uid
   }
   const coinsRef = ref(db, `coins/${uid}`);
   const unsubscribe = onValue(coinsRef, (snapshot) => {
@@ -549,7 +611,7 @@ export const transferBetCoins = async (winnerUid, loserUids, betAmount) => {
       if (winnerTx.committed) {
         console.log(`Successfully added ${totalWinnings} coins to winner ${winnerUid} from ${successfulLosers.length} loser(s).`);
       } else {
-         console.error(`CRITICAL: Winner transaction failed for ${winnerUid} after ${successfulLosers.length} loser(s) paid. Total Winnings: ${totalWinnings}. Attempting to refund.`);
+        console.error(`CRITICAL: Winner transaction failed for ${winnerUid} after ${successfulLosers.length} loser(s) paid. Total Winnings: ${totalWinnings}. Attempting to refund.`);
         // Attempt to refund all successful losers
         for (const refundedLoserUid of successfulLosers) {
           const loserCoinsRef = ref(db, `coins/${refundedLoserUid}`);
@@ -568,17 +630,17 @@ export const transferBetCoins = async (winnerUid, loserUids, betAmount) => {
     } catch (error) {
       console.error(`Failed to add coins to winner ${winnerUid}:`, error);
       // Also attempt to refund if this block fails
-        for (const refundedLoserUid of successfulLosers) {
-          const loserCoinsRef = ref(db, `coins/${refundedLoserUid}`);
-          try {
-            await runTransaction(loserCoinsRef, (currentCoins) => {
-              const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
-              return coins + betAmount;
-            });
-          } catch (refundError) {
-             console.error(`CRITICAL: FAILED TO REFUND LOSER ${refundedLoserUid} (after winner main catch). Error:`, refundError);
-          }
+      for (const refundedLoserUid of successfulLosers) {
+        const loserCoinsRef = ref(db, `coins/${refundedLoserUid}`);
+        try {
+          await runTransaction(loserCoinsRef, (currentCoins) => {
+            const coins = (typeof currentCoins === 'number') ? currentCoins : 0;
+            return coins + betAmount;
+          });
+        } catch (refundError) {
+          console.error(`CRITICAL: FAILED TO REFUND LOSER ${refundedLoserUid} (after winner main catch). Error:`, refundError);
         }
+      }
     }
   } else {
     console.log("No winnings to transfer as no loser deductions were successful.");
