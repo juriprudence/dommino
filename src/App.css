@@ -1741,3 +1741,15 @@ h1 {
   animation: pulse 1.5s infinite;
   margin-left: 10px;
 }
+.remote-streams {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-left: 15px;
+}
+
+.remote-peer {
+  display: flex;
+  align-items: center;
+}
+

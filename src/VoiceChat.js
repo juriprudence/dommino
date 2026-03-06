@@ -1,65 +1,95 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ref, set, onValue, push, onChildAdded, remove } from 'firebase/database';
+import { ref, set, onValue, push, onChildAdded, remove, off, onDisconnect } from 'firebase/database';
 import { db } from './Util';
 
 const configuration = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' }
+        // To add a TURN server (required for some restricted networks), use:
+        // { 
+        //   urls: 'turn:your-turn-server.com:3478', 
+        //   username: 'your-username', 
+        //   credential: 'your-password' 
+        // }
     ]
 };
 
 const VoiceChat = ({ roomId, playerUid }) => {
-    const [localStream, setLocalStream] = useState(null);
-    const [remoteStream, setRemoteStream] = useState(null);
-    const [isMuted, setIsMuted] = useState(false);
     const [isJoined, setIsJoined] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [localStream, setLocalStream] = useState(null);
+    const [peers, setPeers] = useState({}); // { uid: { stream, isLive } }
 
-    const pc = useRef(null);
-    const remoteAudioRef = useRef(null);
+    const peerConnections = useRef({}); // { uid: RTCPeerConnection }
+    const pendingCandidates = useRef({}); // { uid: [candidates] }
+    const localStreamRef = useRef(null);
 
+    // Sync localStreamRef for WebRTC track addition
     useEffect(() => {
-        if (remoteStream && remoteAudioRef.current) {
-            remoteAudioRef.current.srcObject = remoteStream;
-        }
-    }, [remoteStream]);
+        localStreamRef.current = localStream;
+    }, [localStream]);
 
-    // Clean up on unmount
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (pc.current) {
-                pc.current.close();
-            }
+            leaveVoice();
         };
-    }, [localStream]);
+    }, []);
 
     const joinVoice = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setLocalStream(stream);
             setIsJoined(true);
-            setupWebRTC(stream);
+
+            // Register ourselves as present in voice chat
+            const presenceRef = ref(db, `games/${roomId}/webrtc/presence/${playerUid}`);
+            await set(presenceRef, true);
+            // Cleanup on disconnect (Firebase-side)
+            onDisconnect(presenceRef).remove();
+
+            // Listen for other players in voice chat
+            const allPresenceRef = ref(db, `games/${roomId}/webrtc/presence`);
+            onValue(allPresenceRef, (snapshot) => {
+                const presenceData = snapshot.val() || {};
+                Object.keys(presenceData).forEach(otherUid => {
+                    if (otherUid !== playerUid && !peerConnections.current[otherUid]) {
+                        initPeerConnection(otherUid, stream);
+                    }
+                });
+            });
+
+            // Cleanup presence on disconnect (handled by leaveVoice or Firebase disconnect if we implemented it)
         } catch (error) {
             console.error("Error accessing mic:", error);
-            // alert("Could not access microphone.");
         }
     };
 
     const leaveVoice = () => {
+        const presenceRef = ref(db, `games/${roomId}/webrtc/presence/${playerUid}`);
+        remove(presenceRef);
+
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
             setLocalStream(null);
         }
-        if (pc.current) {
-            pc.current.close();
-            pc.current = null;
-        }
+
+        Object.keys(peerConnections.current).forEach(uid => {
+            peerConnections.current[uid].close();
+            delete peerConnections.current[uid];
+        });
+
+        setPeers({});
         setIsJoined(false);
-        setRemoteStream(null);
+
+        // Unsubscribe from presence
+        const allPresenceRef = ref(db, `games/${roomId}/webrtc/presence`);
+        off(allPresenceRef);
     };
 
     const toggleMute = () => {
@@ -71,107 +101,90 @@ const VoiceChat = ({ roomId, playerUid }) => {
         }
     };
 
-    const setupWebRTC = async (stream) => {
-        pc.current = new RTCPeerConnection(configuration);
+    const initPeerConnection = async (otherUid, stream) => {
+        if (peerConnections.current[otherUid]) return;
+
+        const pc = new RTCPeerConnection(configuration);
+        peerConnections.current[otherUid] = pc;
 
         // Add local tracks
         stream.getTracks().forEach(track => {
-            pc.current.addTrack(track, stream);
+            pc.addTrack(track, stream);
         });
 
         // Listen for remote tracks
-        pc.current.ontrack = (event) => {
-            setRemoteStream(event.streams[0]);
+        pc.ontrack = (event) => {
+            setPeers(prev => ({
+                ...prev,
+                [otherUid]: { stream: event.streams[0], isLive: true }
+            }));
         };
 
-        const offerRef = ref(db, `games/${roomId}/webrtc/offer`);
-        const answerRef = ref(db, `games/${roomId}/webrtc/answer`);
-        const callerCandidatesRef = ref(db, `games/${roomId}/webrtc/callerCandidates`);
-        const calleeCandidatesRef = ref(db, `games/${roomId}/webrtc/calleeCandidates`);
+        // Determine Role: smaller UID is Caller
+        const isCaller = playerUid < otherUid;
+        const pairKey = [playerUid, otherUid].sort().join('_');
+        const signalPath = `games/${roomId}/webrtc/signals/${pairKey}`;
 
-        let isCaller = false;
+        const offerRef = ref(db, `${signalPath}/offer`);
+        const answerRef = ref(db, `${signalPath}/answer`);
+        const myCandidatesRef = ref(db, `${signalPath}/${playerUid}_candidates`);
+        const theirCandidatesRef = ref(db, `${signalPath}/${otherUid}_candidates`);
 
-        // Listen for ICE candidates
-        pc.current.onicecandidate = event => {
+        // ICE Candidates
+        pc.onicecandidate = (event) => {
             if (event.candidate) {
-                const candidatesRef = isCaller ? callerCandidatesRef : calleeCandidatesRef;
-                push(candidatesRef, event.candidate.toJSON());
+                push(myCandidatesRef, event.candidate.toJSON());
             }
         };
 
-        let unsubscribe;
-        unsubscribe = onValue(offerRef, async (snapshot) => {
-            if (unsubscribe) unsubscribe(); // Run once
+        if (isCaller) {
+            // Create Offer
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await set(offerRef, { sdp: offer.sdp, type: offer.type, from: playerUid });
 
-            const offer = snapshot.val();
-
-            if (!offer || offer.senderUid === playerUid) {
-                // We are the Caller
-                isCaller = true;
-
-                if (!offer) {
-                    set(ref(db, `games/${roomId}/webrtc`), null);
+            // Listen for Answer
+            onValue(answerRef, async (snapshot) => {
+                const answer = snapshot.val();
+                if (answer && answer.from === otherUid && pc.signalingState === "have-local-offer") {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                    processPendingCandidates(otherUid);
                 }
+            });
+        } else {
+            // Wait for Offer
+            onValue(offerRef, async (snapshot) => {
+                const offer = snapshot.val();
+                if (offer && offer.from === otherUid && pc.signalingState === "stable") {
+                    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    await set(answerRef, { sdp: answer.sdp, type: answer.type, from: playerUid });
+                    processPendingCandidates(otherUid);
+                }
+            });
+        }
 
-                const offerDescription = await pc.current.createOffer();
-                await pc.current.setLocalDescription(offerDescription);
-
-                const offerData = {
-                    sdp: offerDescription.sdp,
-                    type: offerDescription.type,
-                    senderUid: playerUid
-                };
-
-                await set(offerRef, offerData);
-
-                // Listen for Answer
-                onValue(answerRef, async (ansSnapshot) => {
-                    const answer = ansSnapshot.val();
-                    if (answer && answer.senderUid !== playerUid && pc.current.signalingState !== "stable") {
-                        const answerDescription = new RTCSessionDescription(answer);
-                        await pc.current.setRemoteDescription(answerDescription);
-                    }
-                });
-
-                // Listen for Callee Candidates
-                onChildAdded(calleeCandidatesRef, (data) => {
-                    if (pc.current && pc.current.remoteDescription) {
-                        const candidate = new RTCIceCandidate(data.val());
-                        pc.current.addIceCandidate(candidate).catch(e => console.error(e));
-                    } else {
-                        // Store it to add later if remoteDescription is not set yet, or ignore.
-                        // Actually, Firebase handles ordering. If remote isn't set, we might miss.
-                        // Better to delay adding candidates until remote description is set.
-                        // Usually, RTCPeerConnection queues them or we must queue. 
-                        // To keep it simple, we just set remoteDescription first.
-                    }
-                });
-
+        // Handle incoming candidates
+        onChildAdded(theirCandidatesRef, (data) => {
+            const candidate = new RTCIceCandidate(data.val());
+            if (pc.remoteDescription) {
+                pc.addIceCandidate(candidate).catch(e => console.error("Error adding ice candidate:", e));
             } else {
-                // We are the Callee
-                isCaller = false;
-
-                const offerDescription = new RTCSessionDescription(offer);
-                await pc.current.setRemoteDescription(offerDescription);
-
-                const answerDescription = await pc.current.createAnswer();
-                await pc.current.setLocalDescription(answerDescription);
-
-                const answerData = {
-                    sdp: answerDescription.sdp,
-                    type: answerDescription.type,
-                    senderUid: playerUid
-                };
-
-                await set(answerRef, answerData);
-
-                // Listen for Caller Candidates
-                onChildAdded(callerCandidatesRef, (data) => {
-                    const candidate = new RTCIceCandidate(data.val());
-                    pc.current.addIceCandidate(candidate).catch(e => console.error(e));
-                });
+                if (!pendingCandidates.current[otherUid]) pendingCandidates.current[otherUid] = [];
+                pendingCandidates.current[otherUid].push(candidate);
             }
         });
+    };
+
+    const processPendingCandidates = (uid) => {
+        const pc = peerConnections.current[uid];
+        if (pc && pc.remoteDescription && pendingCandidates.current[uid]) {
+            pendingCandidates.current[uid].forEach(candidate => {
+                pc.addIceCandidate(candidate).catch(e => console.error("Error adding pending ice candidate:", e));
+            });
+            delete pendingCandidates.current[uid];
+        }
     };
 
     return (
@@ -188,13 +201,30 @@ const VoiceChat = ({ roomId, playerUid }) => {
                     <button onClick={leaveVoice} className="voice-btn leave-voice-btn">
                         📞 Leave
                     </button>
-                    {remoteStream && <span className="voice-status">🗣️</span>}
+                    <div className="remote-streams">
+                        {Object.keys(peers).map(uid => (
+                            <div key={uid} className="remote-peer">
+                                <span className="voice-status">🗣️</span>
+                                <RemoteAudio stream={peers[uid].stream} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
-
-            <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
         </div>
     );
+};
+
+// Sub-component to handle audio tag per stream
+const RemoteAudio = ({ stream }) => {
+    const audioRef = useRef(null);
+    useEffect(() => {
+        if (audioRef.current && stream) {
+            audioRef.current.srcObject = stream;
+        }
+    }, [stream]);
+
+    return <audio ref={audioRef} autoPlay playsInline style={{ display: 'none' }} />;
 };
 
 export default VoiceChat;
