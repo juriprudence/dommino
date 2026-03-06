@@ -105,11 +105,11 @@ function Login(props) {
     <div className="home-container">
       {/* Logo */}
       <div className="domino-logo" style={{ marginBottom: '30px' }}>
-        <img src="/logo.png" alt="Domino Logo" className="login-logo" style={{ width: '120px', height: '120px' }} />
+        <img src="/logo-small.png" alt="Domino Logo" className="login-logo" style={{ width: '120px', height: '120px' }} />
       </div>
-<h1>{isLoginMode ? text.login : text.register} {text.or} {text.playAnonymously}</h1>
+      <h1>{isLoginMode ? text.login : text.register} {text.or} {text.playAnonymously}</h1>
 
-{error && <p className="error-message arabic-text">{error}</p>}
+      {error && <p className="error-message arabic-text">{error}</p>}
 
 
       {/* --- Email/Password Form --- */}
@@ -150,7 +150,7 @@ function Login(props) {
 
       {/* --- Anonymous Login Form --- */}
       <form onSubmit={handleAnonymousSubmit} className="start-game-form">
-         <input
+        <input
           type="text"
           value={anonymousName}
           onChange={(e) => setAnonymousName(e.target.value)}

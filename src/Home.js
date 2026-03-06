@@ -330,7 +330,7 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
   return (
     <div className="home-container">
       <div className="logo-container">
-        <img src="/logo.png" alt="Domino Game Logo" className="game-logo" />
+        <img src="/logo-small.png" alt="Domino Game Logo" className="game-logo" />
       </div>
       <h1 className="arabic-text">{text.gameTitle}</h1>
       <div className="start-game-form">
