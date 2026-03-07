@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>تحدي الدومينو - انضم الآن</title>
-    <!-- Facebook Open Graph Meta Tags -->
+    <!-- Social Media Open Graph Meta Tags -->
     <meta property="og:title" content="لعبة الدومينو - صديقك يتحداك!" />
     <meta property="og:description"
         content="لقد أرسل لك صديقك تحدياً في لعبة الدومينو. هل أنت مستعد للعب؟ اضغط هنا للانضمام إلى الغرفة." />
@@ -14,18 +14,31 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="لعبة الدومينو" />
+    <meta property="og:locale" content="ar_AR" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="لعبة الدومينو - صديقك يتحداك!" />
+    <meta name="twitter:description" content="لقد أرسل لك صديقك تحدياً في لعبة الدومينو. هل أنت مستعد للعب؟" />
+    <meta name="twitter:image" content="https://elhabdomino.fun/challenge_invite.png" />
 
     <script>
-        // Parse the 'r' parameter for the room ID
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get("r");
+        // Use window.location.replace for better compatibility with In-App Browsers
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const roomId = params.get("r");
+            const targetUrl = roomId ? "/#/room/" + roomId : "/";
 
-        // Redirect to the hash route or home
-        if (roomId) {
-            window.location.href = "/#/room/" + roomId;
-        } else {
-            window.location.href = "/";
-        }
+            // Set manual link just in case
+            const manualLink = document.getElementById('manual-link');
+            if (manualLink) manualLink.href = targetUrl;
+
+            // Short delay to allow mobile browsers to settle
+            setTimeout(() => {
+                window.location.replace(targetUrl);
+            }, 800);
+        });
     </script>
     <style>
         body {
@@ -70,6 +83,8 @@
     <div class="container">
         <div class="loader"></div>
         <p>جاري تحويلك إلى اللعبة...</p>
+        <p><a id="manual-link" href="/" style="color: #f57c00; text-decoration: none; font-size: 0.9rem;">إذا لم يتم
+                تحويلك تلقائياً، اضغط هنا للانضمام</a></p>
     </div>
 </body>
 
