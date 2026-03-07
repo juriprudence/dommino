@@ -698,6 +698,20 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
     }
   };
 
+  const shareOnMessenger = () => {
+    const link = `https://elhabdomino.fun/invite?r=${roomId}`;
+    if (window.FB) {
+      window.FB.ui({
+        method: 'send',
+        link: link,
+      }, function (response) { });
+    } else {
+      // Fallback
+      const messengerUrl = `fb-messenger://share/?link=${encodeURIComponent(link)}&app_id=393250008045189`;
+      window.open(messengerUrl, '_blank');
+    }
+  };
+
   const handleTileSelect = (tile, index) => {
     // Only allow selecting tile if it's your turn
     if (!game) return;
@@ -1075,6 +1089,9 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
                 <button onClick={shareOnFacebook} className="facebook-share-button arabic-text" style={{ backgroundColor: '#1877f2', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', margin: '5px' }}>
                   {text.facebookShare || 'Share on Facebook'}
                 </button>
+                <button onClick={shareOnMessenger} className="messenger-share-button arabic-text" style={{ backgroundColor: '#0084ff', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', margin: '5px' }}>
+                  {text.messengerShare || 'Messenger'}
+                </button>
               </div>
             )}
             {isAiMode && (
@@ -1097,6 +1114,9 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
             <button onClick={shareOnFacebook} className="facebook-share-button arabic-text" style={{ backgroundColor: '#1877f2', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>
               {text.facebookShare || 'Share on Facebook'}
+            </button>
+            <button onClick={shareOnMessenger} className="messenger-share-button arabic-text" style={{ backgroundColor: '#0084ff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>
+              {text.messengerShare || 'Messenger'}
             </button>
           </div>
         </div>
@@ -1149,6 +1169,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
               winner={game.gameState.winner === 'tie' ? 'tie' : game.players[game.gameState.winner]}
               onNewGame={startNewGame}
               onShare={shareOnFacebook}
+              onShareMessenger={shareOnMessenger}
               isTie={game.gameState.winner === 'tie'}
               text={text}
             />

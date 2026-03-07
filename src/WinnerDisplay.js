@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DominoDots from './DominoDots';
 
-const WinnerDisplay = ({ winner, onNewGame, isTie, text, onShare }) => {
+const WinnerDisplay = ({ winner, onNewGame, isTie, text, onShare, onShareMessenger }) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -79,6 +79,23 @@ const WinnerDisplay = ({ winner, onNewGame, isTie, text, onShare }) => {
           }}
         >
           {text.facebookShare || 'Share on Facebook'}
+        </button>
+        <button
+          onClick={onShareMessenger}
+          className="messenger-share-button arabic-text"
+          style={{
+            backgroundColor: '#0084ff',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            marginTop: '10px',
+            width: '100%',
+            display: 'block'
+          }}
+        >
+          {text.messengerShare || 'Share via Messenger'}
         </button>
       </div>
     </div>

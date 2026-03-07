@@ -124,7 +124,8 @@ export const arabicText = {
   titleContact: "اتصل بنا - الدعم الفني للدومينو",
   titlePrivacy: "سياسة الخصوصية",
   titleTerms: "شروط الخدمة",
-  facebookShare: "مشاركة على فيسبوك"
+  facebookShare: "مشاركة على فيسبوك",
+  messengerShare: "مشاركة عبر مسنجر"
 };
 
 // Placeholder English translations (replace with actual text)
@@ -250,7 +251,8 @@ const englishText = {
   titleContact: "Contact Us - Technical Support",
   titlePrivacy: "Privacy Policy",
   titleTerms: "Terms of Service",
-  facebookShare: "Share on Facebook"
+  facebookShare: "Share on Facebook",
+  messengerShare: "Share via Messenger"
 };
 
 // Placeholder French translations (replace with actual text)
@@ -376,7 +378,8 @@ const frenchText = {
   titleContact: "Contactez-nous - Support Technique",
   titlePrivacy: "Politique de Confidentialité",
   titleTerms: "Conditions d'Utilisation",
-  facebookShare: "Partager sur Facebook"
+  facebookShare: "Partager sur Facebook",
+  messengerShare: "Partager via Messenger"
 };
 
 // Combine all translations
