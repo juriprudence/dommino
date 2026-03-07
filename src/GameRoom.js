@@ -684,6 +684,20 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
       });
   };
 
+  const shareOnFacebook = () => {
+    const link = `https://elhabdomino.fun/invite?r=${roomId}`;
+    if (window.FB) {
+      window.FB.ui({
+        method: 'share',
+        href: link,
+      }, function (response) { });
+    } else {
+      // Fallback if FB SDK not loaded properly
+      const fbShareUrl = `https://www.facebook.com/dialog/share?app_id=393250008045189&display=popup&href=${encodeURIComponent(link)}&redirect_uri=${encodeURIComponent(link)}`;
+      window.open(fbShareUrl, 'fb-share', 'width=600,height=400');
+    }
+  };
+
   const handleTileSelect = (tile, index) => {
     // Only allow selecting tile if it's your turn
     if (!game) return;
@@ -1056,7 +1070,12 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             <p className="arabic-text room-id-display">{text.roomId}: {roomId}</p>
             <span className="arabic-text">{text.coins || 'النقاط'}: {coins}</span>
             {!isAiMode && (
-              <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
+              <div className="share-buttons-container">
+                <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
+                <button onClick={shareOnFacebook} className="facebook-share-button arabic-text" style={{ backgroundColor: '#1877f2', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', margin: '5px' }}>
+                  {text.facebookShare || 'Share on Facebook'}
+                </button>
+              </div>
             )}
             {isAiMode && (
               <span className="ai-mode-indicator arabic-text">{text.aiModeActive} ({text[game.gameState.aiDifficulty]})</span>
@@ -1074,7 +1093,12 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
           <h2 className="arabic-text">{text.waiting}</h2>
           <p className="arabic-text">{text.shareLink}</p>
           <p className="game-link">https://elhabdomino.fun/invite?r={roomId}</p>
-          <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
+          <div className="share-buttons-container" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
+            <button onClick={copyGameLink} className="copy-link-button arabic-text">{text.copyLink}</button>
+            <button onClick={shareOnFacebook} className="facebook-share-button arabic-text" style={{ backgroundColor: '#1877f2', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}>
+              {text.facebookShare || 'Share on Facebook'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="game-board">
@@ -1124,6 +1148,7 @@ const GameRoom = ({ user, coins, text, language, onLanguageChange }) => {
             <WinnerDisplay
               winner={game.gameState.winner === 'tie' ? 'tie' : game.players[game.gameState.winner]}
               onNewGame={startNewGame}
+              onShare={shareOnFacebook}
               isTie={game.gameState.winner === 'tie'}
               text={text}
             />

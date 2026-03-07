@@ -123,7 +123,8 @@ export const arabicText = {
   titleAbout: "من نحن - قصة لعبة الدومينو",
   titleContact: "اتصل بنا - الدعم الفني للدومينو",
   titlePrivacy: "سياسة الخصوصية",
-  titleTerms: "شروط الخدمة"
+  titleTerms: "شروط الخدمة",
+  facebookShare: "مشاركة على فيسبوك"
 };
 
 // Placeholder English translations (replace with actual text)
@@ -248,7 +249,8 @@ const englishText = {
   titleAbout: "About Us - The Domino Story",
   titleContact: "Contact Us - Technical Support",
   titlePrivacy: "Privacy Policy",
-  titleTerms: "Terms of Service"
+  titleTerms: "Terms of Service",
+  facebookShare: "Share on Facebook"
 };
 
 // Placeholder French translations (replace with actual text)
@@ -356,7 +358,7 @@ const frenchText = {
   aboutTitle: "À Propos de Nous",
   contactTitle: "Contactez-nous",
   seoTitle: "À Propos du Jeu de Domino",
-  seoIntro: "Le Domino est l'un des jeux de table les plus célèbres et les plus anciens au monde. Il repose sur l'habileté et l'intelligence.",
+  seoIntro: "Le Domino est l'un des jeux de table les plus célèbres et les plus anciens au monde. Il repose sur l'habileté و l'intelligence.",
   seoHistoryTitle: "Histoire du Domino",
   seoHistoryDesc: "Le jeu est né en Chine au XIIIe siècle, puis s'est répandu en Europe et dans le monde entier.",
   seoRulesTitle: "Comment Jouer",
@@ -373,7 +375,8 @@ const frenchText = {
   titleAbout: "À Propos - L'Histoire du Domino",
   titleContact: "Contactez-nous - Support Technique",
   titlePrivacy: "Politique de Confidentialité",
-  titleTerms: "Conditions d'Utilisation"
+  titleTerms: "Conditions d'Utilisation",
+  facebookShare: "Partager sur Facebook"
 };
 
 // Combine all translations
