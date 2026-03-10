@@ -507,7 +507,7 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
         }
         @media (max-width: 768px) {
           .seo-section {
-            padding: 1rem;
+            display: none;
           }
           .seo-grid {
             gap: 1rem;
