@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ref, set, onValue, push, onChildAdded, remove, off, onDisconnect } from 'firebase/database';
 import { db } from './Util';
+import SoundManager from './SoundManager';
 
 const configuration = {
     iceServers: [
@@ -64,6 +65,9 @@ const VoiceChat = ({ roomId, playerUid }) => {
                 });
             });
 
+            // Deactivate game sound during voice chat
+            SoundManager.setVoiceActive(true);
+
             // Cleanup presence on disconnect (handled by leaveVoice or Firebase disconnect if we implemented it)
         } catch (error) {
             console.error("Error accessing mic:", error);
@@ -90,6 +94,9 @@ const VoiceChat = ({ roomId, playerUid }) => {
         // Unsubscribe from presence
         const allPresenceRef = ref(db, `games/${roomId}/webrtc/presence`);
         off(allPresenceRef);
+
+        // Reactivate game sound when voice chat ends
+        SoundManager.setVoiceActive(false);
     };
 
     const toggleMute = () => {

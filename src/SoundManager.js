@@ -12,6 +12,7 @@ class SoundManager {
         this.sounds.theme.volume = 0.05; // Set volume to 0.05 (5%) as requested
 
         this.isMuted = false;
+        this.isVoiceActive = false; // Track if voice chat is active
 
         // Listeners for mute state from localStorage or global state
         const savedMute = localStorage.getItem('gameMuted');
@@ -34,8 +35,8 @@ class SoundManager {
 
     play(soundName) {
         console.log(`[SoundManager] Playing: ${soundName}`);
-        if (this.isMuted) {
-            console.log(`[SoundManager] ${soundName} is muted, skipping.`);
+        if (this.isMuted || this.isVoiceActive) {
+            console.log(`[SoundManager] ${soundName} is muted or voice is active, skipping.`);
             return;
         }
         if (!this.sounds[soundName]) {
@@ -94,6 +95,19 @@ class SoundManager {
     toggleMute() {
         this.setMuted(!this.isMuted);
         return this.isMuted;
+    }
+
+    setVoiceActive(isActive) {
+        console.log(`[SoundManager] Setting voice active: ${isActive}`);
+        this.isVoiceActive = isActive;
+
+        if (isActive) {
+            // Pause theme music immediately when voice starts
+            this.sounds.theme.pause();
+        } else if (!this.isMuted && this.sounds.theme.paused) {
+            // Resume theme if not globally muted and it was playing
+            this.play('theme');
+        }
     }
 }
 
