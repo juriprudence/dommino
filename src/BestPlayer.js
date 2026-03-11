@@ -24,13 +24,16 @@ const BestPlayer = ({ user, coins, text }) => {
   if (loading) return <div className="arabic-text">{text.loading}</div>;
 
   return (
-    <div className="best-player-screen arabic-text" style={{textAlign: 'center', marginTop: '40px'}}>
+    <div className="best-player-screen arabic-text" style={{ textAlign: 'center', marginTop: '40px' }}>
       <h1>{text.bestPlayer}</h1>
       {topPlayers.length > 0 ? (
-        <div style={{fontSize: '1.2em', margin: '30px 0'}}>
+        <div style={{ fontSize: '1.2em', margin: '30px 0' }}>
           {topPlayers.map(([name, info], idx) => (
-            <div key={name} style={{margin: '12px 0', fontWeight: idx === 0 ? 'bold' : 'normal'}}>
-              <span style={{fontSize: '1.1em'}}>
+            <div key={name} style={{ margin: '12px 0', fontWeight: idx === 0 ? 'bold' : 'normal' }}>
+              <span
+                style={{ fontSize: '1.1em', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={() => navigate(`/profile/${info.uid}`)}
+              >
                 #{idx + 1} {name}
               </span>
             </div>

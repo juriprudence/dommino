@@ -125,7 +125,10 @@ export const arabicText = {
   titlePrivacy: "سياسة الخصوصية",
   titleTerms: "شروط الخدمة",
   facebookShare: "مشاركة على فيسبوك",
-  messengerShare: "مشاركة عبر مسنجر"
+  messengerShare: "مشاركة عبر مسنجر",
+  profile: "الملف الشخصي",
+  challenge: "تحدي",
+  back: "رجوع"
 };
 
 // Placeholder English translations (replace with actual text)
@@ -252,7 +255,10 @@ const englishText = {
   titlePrivacy: "Privacy Policy",
   titleTerms: "Terms of Service",
   facebookShare: "Share on Facebook",
-  messengerShare: "Share via Messenger"
+  messengerShare: "Share via Messenger",
+  profile: "Profile",
+  challenge: "Challenge",
+  back: "Back"
 };
 
 // Placeholder French translations (replace with actual text)
@@ -379,7 +385,10 @@ const frenchText = {
   titlePrivacy: "Politique de Confidentialité",
   titleTerms: "Conditions d'Utilisation",
   facebookShare: "Partager sur Facebook",
-  messengerShare: "Partager via Messenger"
+  messengerShare: "Partager via Messenger",
+  profile: "Profil",
+  challenge: "Défier",
+  back: "Retour"
 };
 
 // Combine all translations

@@ -6,6 +6,7 @@ import Home from './Home';
 import GameRoom from './GameRoom';
 import Lobby from './Lobby';
 import BestPlayer from './BestPlayer';
+import Profile from './Profile';
 import Login from './Login';
 import Footer from './Footer';
 import AboutUs from './AboutUs';
@@ -134,7 +135,10 @@ function App() {
       <>
         <header className="main-header" dir={language === 'ar' ? 'rtl' : 'ltr'}>
           <div className="header-content">
-            <span className="header-user-info">{text.welcome}, {user.displayName || user.email || text.guest}! {text.coins}: {coins}</span>
+            <div className="header-user-container" onClick={() => navigate('/profile')} style={{ cursor: 'pointer' }}>
+              <button className="profile-circle-btn header-profile" title={text.profile}>👤</button>
+              <span className="header-user-info">{text.welcome}, {user.displayName || user.email || text.guest}! {text.coins}: {coins}</span>
+            </div>
             <div className="coin-display">
               <svg className="coin-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
                 <title>Coin Icon</title>
@@ -180,6 +184,8 @@ function App() {
             <Route path="/lobby" element={<Lobby user={user} coins={coins} language={language} text={text} onLanguageChange={setLanguage} />} />
             {/* Pass user, coins, language, and text to BestPlayer */}
             <Route path="/best-player" element={<BestPlayer user={user} coins={coins} language={language} text={text} onLanguageChange={setLanguage} />} />
+            {/* Profile route */}
+            <Route path="/profile/:uid?" element={<Profile user={user} coins={coins} text={text} language={language} />} />
 
             {/* New routes for AdSense fix */}
             <Route path="/about" element={<AboutUs text={text} language={language} />} />
