@@ -739,12 +739,15 @@ h1 {
 
   .home-container,
   .game-room {
-    padding: 12px 3vw;
-    border-radius: 10px;
+    padding: 15px 4vw;
+    border-radius: 16px;
+    width: 96%;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .game-logo {
-    max-width: 110px;
+    max-width: 90px;
   }
 }
 
@@ -1311,10 +1314,10 @@ h1 {
 /* Header styling for coin display */
 .main-header {
   background-color: var(--light-color);
-  padding: 10px 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   direction: rtl;
 }
 
@@ -1333,9 +1336,10 @@ h1 {
 
 @media (max-width: 768px) {
   .header-content {
-    flex-wrap: nowrap;
-    padding: 5px;
-    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 6px;
+    gap: 8px;
   }
 
   .coin-display {
@@ -1354,44 +1358,26 @@ h1 {
   }
 
   .header-actions {
-    margin-top: 0;
-    width: auto;
-    flex: 1;
+    margin-top: 8px;
+    width: 100%;
     display: flex;
     flex-direction: row;
-    justify-content: flex-end;
-    gap: 4px;
-  }
-}
-
-.header-actions {
-  margin-top: 5px;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-@media (max-width: 768px) {
-  .header-actions {
-    flex-direction: row;
-    gap: 4px;
-    margin-top: 0;
-    width: auto;
+    justify-content: center;
+    gap: 6px;
   }
 
   .logout-button,
   .return-home-button {
-    min-height: 36px;
-    padding: 6px 0;
+    min-height: 38px;
+    padding: 6px 12px;
     font-size: 0.85rem;
     flex: 1;
-    border-radius: 8px;
+    border-radius: 10px;
     margin: 0;
     box-shadow: 0 2px 8px rgba(168, 50, 50, 0.07);
     letter-spacing: 0.02em;
     touch-action: manipulation;
+    white-space: nowrap;
   }
 }
 

@@ -512,6 +512,29 @@ const Home = ({ user, coins, language, text }) => { // Add language and text pro
           .seo-grid {
             gap: 1rem;
           }
+          .home-container {
+            padding: 15px 10px;
+            margin-top: 10px;
+            min-height: auto;
+          }
+          .start-game-form {
+            max-width: 100%;
+          }
+          .game-mode-selection {
+            margin: 15px 0;
+            width: 100%;
+          }
+          .radio-group {
+            gap: 12px;
+          }
+          .bet-input-container {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 4px !important;
+          }
+          .bet-input-container label {
+            min-width: 0 !important;
+          }
         }
       `}</style>
     </div>
