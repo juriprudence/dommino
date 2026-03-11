@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { fetchLeaderboard, auth, db, generateDominoTiles, shuffleTiles } from './Util';
-import { ref, push, set } from 'firebase/database';
+import { fetchLeaderboard, auth, db, generateDominoTiles, shuffleTiles, subscribeToFriends, addFriend, removeFriend } from './Util';
+import { ref, push, set, onValue } from 'firebase/database';
 
 const Profile = ({ user, coins, text, language }) => {
     const { uid } = useParams();
     const [profileData, setProfileData] = useState(null);
     const [totalWins, setTotalWins] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [friends, setFriends] = useState({});
     const navigate = useNavigate();
 
     const isOwnProfile = !uid || uid === user.uid;
@@ -37,6 +38,37 @@ const Profile = ({ user, coins, text, language }) => {
             setLoading(false);
         });
     }, [uid, user.uid, user.displayName, isOwnProfile]);
+
+    useEffect(() => {
+        if (!user.uid) return;
+        const unsubscribe = subscribeToFriends(user.uid, (data) => {
+            setFriends(data);
+        });
+        return () => unsubscribe();
+    }, [user.uid]);
+
+    const isFriend = profileData && friends[profileData.uid];
+
+    const handleAddFriend = async () => {
+        if (!profileData || isOwnProfile) return;
+        try {
+            await addFriend(user.uid, {
+                displayName: profileData.displayName,
+                uid: profileData.uid
+            });
+            alert(text.friendAdded || "Friend added!");
+        } catch (error) {
+            console.error("Add friend error:", error);
+        }
+    };
+
+    const handleRemoveFriend = async (friendUid) => {
+        try {
+            await removeFriend(user.uid, friendUid);
+        } catch (error) {
+            console.error("Remove friend error:", error);
+        }
+    };
 
     const handleChallenge = async () => {
         if (!profileData || isOwnProfile) return;
@@ -129,9 +161,46 @@ const Profile = ({ user, coins, text, language }) => {
                 </div>
 
                 {!isOwnProfile && profileData && (
-                    <button className="start-game-button" onClick={handleChallenge} style={{ marginBottom: '15px' }}>
-                        {text.challenge}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '10px', marginBottom: '15px' }}>
+                        <button className="start-game-button" onClick={handleChallenge}>
+                            {text.challenge}
+                        </button>
+                        {!isFriend ? (
+                            <button className="start-game-button" onClick={handleAddFriend} style={{ background: '#4CAF50' }}>
+                                {text.addFriend}
+                            </button>
+                        ) : (
+                            <button className="start-game-button" onClick={() => handleRemoveFriend(profileData.uid)} style={{ background: '#f44336' }}>
+                                {text.removeFriend}
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {isOwnProfile && (
+                    <div className="friends-section" style={{ width: '100%', marginTop: '20px', marginBottom: '20px', textAlign: 'center' }}>
+                        <h3 style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>{text.friends}</h3>
+                        <div className="friends-list" style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '200px', overflowY: 'auto', padding: '10px' }}>
+                            {Object.values(friends).length > 0 ? (
+                                Object.values(friends).map(friend => (
+                                    <div key={friend.uid} className="friend-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '5px' }}>
+                                        <span style={{ cursor: 'pointer', fontWeight: 'bold' }} onClick={() => navigate(`/profile/${friend.uid}`)}>
+                                            {friend.displayName}
+                                        </span>
+                                        <button
+                                            onClick={() => handleRemoveFriend(friend.uid)}
+                                            style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '18px' }}
+                                            title={text.removeFriend}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ color: '#888', fontStyle: 'italic' }}>{text.noFriends}</p>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 <button className="return-home-button" onClick={() => navigate(-1)} style={{ marginBottom: '10px', background: 'var(--secondary-color)', color: 'var(--dark-color)' }}>

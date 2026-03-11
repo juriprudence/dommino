@@ -128,7 +128,12 @@ export const arabicText = {
   messengerShare: "مشاركة عبر مسنجر",
   profile: "الملف الشخصي",
   challenge: "تحدي",
-  back: "رجوع"
+  back: "رجوع",
+  addFriend: "إضافة صديق",
+  friends: "الأصدقاء",
+  noFriends: "ليس لديك أصدقاء بعد",
+  friendAdded: "تمت إضافة الصديق بنجاح",
+  removeFriend: "إزالة الصديق"
 };
 
 // Placeholder English translations (replace with actual text)
@@ -258,7 +263,12 @@ const englishText = {
   messengerShare: "Share via Messenger",
   profile: "Profile",
   challenge: "Challenge",
-  back: "Back"
+  back: "Back",
+  addFriend: "Add Friend",
+  friends: "Friends",
+  noFriends: "You have no friends yet",
+  friendAdded: "Friend added successfully",
+  removeFriend: "Remove Friend"
 };
 
 // Placeholder French translations (replace with actual text)
@@ -388,7 +398,12 @@ const frenchText = {
   messengerShare: "Partager via Messenger",
   profile: "Profil",
   challenge: "Défier",
-  back: "Retour"
+  back: "Retour",
+  addFriend: "Ajouter un ami",
+  friends: "Amis",
+  noFriends: "Vous n'avez pas encore d'amis",
+  friendAdded: "Ami ajouté avec succès",
+  removeFriend: "Supprimer l'ami"
 };
 
 // Combine all translations
@@ -701,4 +716,31 @@ export const fetchUserCoins = async (uid) => {
   const snapshot = await get(coinsRef);
   const coins = snapshot.val();
   return typeof coins === 'number' ? coins : 0;
+};
+
+// Friend Management
+export const subscribeToFriends = (uid, callback) => {
+  if (!uid) return () => { };
+  const friendsRef = ref(db, 'friends/' + uid);
+  const unsubscribe = onValue(friendsRef, (snapshot) => {
+    const data = snapshot.val();
+    callback(data || {});
+  });
+  return unsubscribe;
+};
+
+export const addFriend = async (uid, friendData) => {
+  if (!uid || !friendData.uid) return;
+  const friendRef = ref(db, 'friends/' + uid + '/' + friendData.uid);
+  await set(friendRef, {
+    displayName: friendData.displayName,
+    uid: friendData.uid,
+    addedAt: Date.now()
+  });
+};
+
+export const removeFriend = async (uid, friendUid) => {
+  if (!uid || !friendUid) return;
+  const friendRef = ref(db, 'friends/' + uid + '/' + friendUid);
+  await set(friendRef, null);
 };
